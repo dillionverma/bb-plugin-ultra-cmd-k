@@ -130,10 +130,10 @@ function hostActions(api: PaletteApi): Action[] {
       return {
         id: `host:${spec.id}`,
         title: spec.title,
-        subtitle: binding ? spec.description : "No shortcut bound",
-        icon: spec.icon,
+        subtitle: binding ? undefined : "No shortcut bound",
+        icon: spec.glyph as Action["icon"],
         group: spec.group,
-        keywords: [spec.description, ...(spec.keywords ?? [])],
+        keywords: [spec.title, ...(spec.keywords ?? [])],
         shortcut: binding?.shortcut ? formatShortcut(binding.shortcut, api.isMac) : undefined,
         disabled: binding === null,
         run: async () => {
