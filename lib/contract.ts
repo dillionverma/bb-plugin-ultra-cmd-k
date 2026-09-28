@@ -39,11 +39,19 @@ export const faviconColorSchema = z.enum([
 export type FaviconColor = z.infer<typeof faviconColorSchema>;
 export const FAVICON_COLORS = faviconColorSchema.options;
 
+/** A theme's accent over its canvas, as CSS colour values (see lib/theme-swatch.ts). */
+export const swatchSchema = z.object({ canvas: z.string(), primary: z.string() });
+export type Swatch = z.infer<typeof swatchSchema>;
+export const themeSwatchSchema = z.object({ light: swatchSchema, dark: swatchSchema });
+export type ThemeSwatch = z.infer<typeof themeSwatchSchema>;
+
 export const themeEntrySchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string().nullable(),
   kind: z.enum(["builtin", "custom", "plugin"]),
+  /** Null when the theme's CSS declares no usable anchors; the row draws a neutral dot. */
+  swatch: themeSwatchSchema.nullable(),
 });
 export type ThemeEntry = z.infer<typeof themeEntrySchema>;
 
@@ -94,6 +102,19 @@ export const bootstrapSchema = z.object({
   primaryHostId: z.string().nullable(),
 });
 export type Bootstrap = z.infer<typeof bootstrapSchema>;
+
+/**
+ * Realtime channel the server publishes on whenever something the bootstrap
+ * is built from changes (keybindings, theme, plugins, hosts). The payload is
+ * a signal, not the data: every window refetches once per burst.
+ */
+export const BOOTSTRAP_CHANNEL = "bootstrap";
+export type BootstrapSignal = { reasons: string[]; at: number };
+export function isBootstrapSignal(payload: unknown): payload is BootstrapSignal {
+  if (typeof payload !== "object" || payload === null) return false;
+  const { reasons, at } = payload as Record<string, unknown>;
+  return Array.isArray(reasons) && reasons.every((reason) => typeof reason === "string") && typeof at === "number";
+}
 
 export const threadActionSchema = z.enum([
   "stop",

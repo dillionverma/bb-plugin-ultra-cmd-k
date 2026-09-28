@@ -1,7 +1,18 @@
 import { toast } from "sonner";
 import { CommandGroup } from "@/components/ui/command";
 import { PaletteRow } from "@/components/PaletteRow";
+import { StatusIcon, type StatusTone } from "@/components/StatusIcon";
 import { usePaletteApi } from "@/components/PaletteContext";
+import type { PluginEntry } from "@/lib/contract";
+import { GLYPHS } from "@/lib/glyphs";
+
+function pluginTone(plugin: PluginEntry): StatusTone {
+  if (!plugin.enabled) return "idle";
+  if (plugin.status === "running") return "done";
+  if (plugin.status === "starting") return "working";
+  if (plugin.status === "needs-configuration") return "needs-you";
+  return "problem";
+}
 
 export function PluginsPage() {
   const api = usePaletteApi();
@@ -14,9 +25,9 @@ export function PluginsPage() {
         key={plugin.id}
         value={`plugin:${plugin.id}`}
         keywords={[plugin.name, plugin.id, plugin.status]}
-        icon="Puzzle"
+        iconNode={<StatusIcon tone={pluginTone(plugin)} label={plugin.status} />}
         title={plugin.name}
-        subtitle={plugin.status === "running" ? plugin.id : `${plugin.id} · ${plugin.status}`}
+        meta={plugin.status === "running" || !plugin.enabled ? plugin.id : `${plugin.id} · ${plugin.status}`}
         hasPage
         onSelect={() => api.push({ kind: "plugin", pluginId: plugin.id })}
       />
@@ -45,21 +56,29 @@ export function PluginPage({ pluginId }: { pluginId: string }) {
     }
   };
   return (
-    <CommandGroup heading={`${plugin.name} · ${plugin.status}`}>
+    <CommandGroup
+      heading={
+        <span className="inline-flex items-center gap-1.5">
+          <StatusIcon tone={pluginTone(plugin)} />
+          {plugin.name}
+          <span className="font-normal text-muted-foreground/70">{plugin.status}</span>
+        </span>
+      }
+    >
       {plugin.enabled ? (
         <>
-          <PaletteRow value="plugin:reload" keywords={["reload", "restart"]} icon="RotateCcw" title="Reload" onSelect={act("reload", "reloaded")} />
-          <PaletteRow value="plugin:disable" keywords={["disable", "off"]} icon="Pause" title="Disable" onSelect={act("disable", "disabled")} />
+          <PaletteRow value="plugin:reload" keywords={["reload", "restart"]} glyph={GLYPHS.reopen} title="Reload" onSelect={act("reload", "reloaded")} />
+          <PaletteRow value="plugin:disable" keywords={["disable", "off"]} glyph={GLYPHS.pause} title="Disable" onSelect={act("disable", "disabled")} />
         </>
       ) : (
-        <PaletteRow value="plugin:enable" keywords={["enable", "on"]} icon="Play" title="Enable" onSelect={act("enable", "enabled")} />
+        <PaletteRow value="plugin:enable" keywords={["enable", "on"]} glyph={GLYPHS.play} title="Enable" onSelect={act("enable", "enabled")} />
       )}
       <PaletteRow
         value="plugin:logs"
         keywords={["logs"]}
-        icon="FileText"
-        title="Show recent logs"
-        subtitle={`bb plugin logs ${plugin.id}`}
+        glyph={GLYPHS.logs}
+        title="Recent logs"
+        meta={`bb plugin logs ${plugin.id}`}
         onSelect={async () => {
           try {
             const result = await api.rpc.call("run_bb", { args: ["plugin", "logs", plugin.id, "-n", "80"] });

@@ -3,6 +3,7 @@ import { CommandGroup } from "@/components/ui/command";
 import { PaletteRow } from "@/components/PaletteRow";
 import { usePaletteApi } from "@/components/PaletteContext";
 import { FAVICON_COLORS, type FaviconColor } from "@/lib/contract";
+import { cn } from "@/lib/utils";
 
 const SWATCH: Record<FaviconColor, string> = {
   default: "bg-foreground/60",
@@ -16,6 +17,10 @@ const SWATCH: Record<FaviconColor, string> = {
   pink: "bg-pink-500",
 };
 
+export function FaviconDot({ color, className }: { color: FaviconColor; className?: string }) {
+  return <span aria-hidden className={cn("size-3 rounded-full", SWATCH[color], className)} />;
+}
+
 export function FaviconPage() {
   const api = usePaletteApi();
   const active = api.bootstrap?.theme.faviconColor ?? "default";
@@ -26,7 +31,7 @@ export function FaviconPage() {
           key={color}
           value={`favicon:${color}`}
           keywords={[color, "favicon", "icon"]}
-          iconNode={<span className={`size-3 rounded-full ${SWATCH[color]}`} aria-hidden />}
+          iconNode={<FaviconDot color={color} />}
           title={color[0]!.toUpperCase() + color.slice(1)}
           active={color === active}
           onSelect={async () => {

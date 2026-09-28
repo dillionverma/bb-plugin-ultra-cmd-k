@@ -11,7 +11,7 @@ Press ⌘K and do anything in bb from the keyboard.
 
 ## How it works
 
-The plugin relocates bb's quick palette to ⌘⇧P so ⌘K is free, and restores it when disabled. Actions run through the plugin server; `bb …` commands run through a host entry with no shell access.
+The plugin relocates bb's quick palette to ⌘⇧P so ⌘K is free, and restores it when disabled. Actions run through the plugin server; `bb …` commands run through a host entry with no shell access. Its data is fetched once and kept fresh by a realtime signal from the server, and `@` mode windows the thread list, so it stays instant on large workspaces.
 
 ## For agents
 

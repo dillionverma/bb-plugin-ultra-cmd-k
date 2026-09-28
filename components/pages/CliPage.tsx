@@ -3,9 +3,11 @@
 // palette never has to close to show a result.
 import { useState } from "react";
 import { CommandGroup } from "@/components/ui/command";
+import { TextShimmer } from "@/components/ui/text-shimmer";
 import { PaletteRow } from "@/components/PaletteRow";
 import { usePaletteApi } from "@/components/PaletteContext";
 import { MAX_BB_ARGS } from "@/lib/contract";
+import { GLYPHS } from "@/lib/glyphs";
 
 /** Shell-ish split: whitespace separated, "double" and 'single' quotes group. */
 export function splitArgs(input: string): string[] {
@@ -40,18 +42,18 @@ export function splitArgs(input: string): string[] {
 }
 
 const SUGGESTIONS: { args: string; summary: string }[] = [
-  { args: "status", summary: "Current project, thread and environment" },
-  { args: "thread list", summary: "Recent threads" },
-  { args: "plugin list", summary: "Installed plugins and their state" },
-  { args: "theme list", summary: "Available themes" },
-  { args: "settings keyboard list", summary: "Effective keybindings" },
-  { args: "automation list", summary: "Scheduled work" },
-  { args: "workflows list", summary: "Workflow runs" },
+  { args: "status", summary: "project, thread, environment" },
+  { args: "thread list", summary: "recent threads" },
+  { args: "plugin list", summary: "installed plugins" },
+  { args: "theme list", summary: "available themes" },
+  { args: "settings keyboard list", summary: "effective keybindings" },
+  { args: "automation list", summary: "scheduled work" },
+  { args: "workflows list", summary: "workflow runs" },
 ];
 
 export function CliPage({ text, setQuery }: { text: string; setQuery: (value: string) => void }) {
   const api = usePaletteApi();
-  const [running, setRunning] = useState(false);
+  const [running, setRunning] = useState<string | null>(null);
   const args = splitArgs(text.startsWith("bb ") ? text.slice(3) : text);
   const valid = args.length > 0 && args.length <= MAX_BB_ARGS;
   const command = `bb ${args.join(" ")}`.trim();
@@ -59,7 +61,7 @@ export function CliPage({ text, setQuery }: { text: string; setQuery: (value: st
 
   const run = async () => {
     if (!valid || running) return;
-    setRunning(true);
+    setRunning(command);
     try {
       const result = await api.rpc.call("run_bb", { args });
       api.record("cli:run");
@@ -67,34 +69,46 @@ export function CliPage({ text, setQuery }: { text: string; setQuery: (value: st
     } catch (error) {
       api.reportError(error);
     } finally {
-      setRunning(false);
+      setRunning(null);
     }
   };
 
   return (
     <>
       <CommandGroup heading={hostName ? `Run on ${hostName}` : "Run"}>
-        <PaletteRow
-          value="cli:run"
-          keywords={[]}
-          icon={running ? "Loading" : "Terminal"}
-          title={valid ? command : "Type bb arguments, e.g. thread list"}
-          subtitle={running ? "Running…" : undefined}
-          disabled={!valid || running}
-          shortcut={["↵"]}
-          onSelect={run}
-        />
+        {running ? (
+          <PaletteRow
+            value="cli:running"
+            keywords={[]}
+            glyph={GLYPHS.loading}
+            iconClassName="animate-spin"
+            title=""
+            trailing={<TextShimmer className="text-[13px]">{`Running ${running}…`}</TextShimmer>}
+            disabled
+            onSelect={() => {}}
+          />
+        ) : (
+          <PaletteRow
+            value="cli:run"
+            keywords={[]}
+            glyph={GLYPHS.terminal}
+            title={valid ? command : "Type bb arguments, e.g. thread list"}
+            disabled={!valid}
+            shortcut={["↵"]}
+            onSelect={run}
+          />
+        )}
       </CommandGroup>
       {text.trim() === "" ? (
-        <CommandGroup heading="Suggestions">
+        <CommandGroup heading="Try">
           {SUGGESTIONS.map((suggestion) => (
             <PaletteRow
               key={suggestion.args}
               value={`cli:suggest:${suggestion.args}`}
               keywords={[suggestion.args, suggestion.summary]}
-              icon="ChevronRight"
+              glyph={GLYPHS.cli}
               title={`bb ${suggestion.args}`}
-              subtitle={suggestion.summary}
+              meta={suggestion.summary}
               onSelect={() => setQuery(`$ ${suggestion.args}`)}
             />
           ))}

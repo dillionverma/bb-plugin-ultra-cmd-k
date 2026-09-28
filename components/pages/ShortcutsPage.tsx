@@ -2,10 +2,15 @@
 import { CommandGroup } from "@/components/ui/command";
 import { PaletteRow } from "@/components/PaletteRow";
 import { usePaletteApi } from "@/components/PaletteContext";
+import { GLYPHS } from "@/lib/glyphs";
 import { findBinding, formatShortcut, HOST_COMMANDS, isDesktopApp } from "@/lib/host-commands";
 
+function specFor(commandId: string) {
+  return HOST_COMMANDS.find((entry) => entry.id === commandId);
+}
+
 function labelFor(commandId: string): string {
-  const spec = HOST_COMMANDS.find((entry) => entry.id === commandId);
+  const spec = specFor(commandId);
   if (spec) return spec.title;
   const jump = /^thread\.jump\.(\d)$/.exec(commandId);
   if (jump) return `Open sidebar thread ${jump[1]}`;
@@ -31,18 +36,18 @@ export function ShortcutsPage() {
       seen.add(binding.command);
       return true;
     })
-    .map((binding) => ({ binding, label: labelFor(binding.command) }))
+    .map((binding) => ({ binding, label: labelFor(binding.command), spec: specFor(binding.command) }))
     .sort((a, b) => a.label.localeCompare(b.label));
   return (
-    <CommandGroup heading={`Keyboard shortcuts (${isDesktop ? "desktop" : "web"})`}>
-      {rows.map(({ binding, label }) => (
+    <CommandGroup heading={`Shortcuts · ${isDesktop ? "desktop" : "web"}`}>
+      {rows.map(({ binding, label, spec }) => (
         <PaletteRow
           key={binding.command}
           value={`shortcut:${binding.command}`}
           keywords={[label, binding.command]}
-          icon="ChevronRight"
+          glyph={spec ? GLYPHS[spec.glyph] : GLYPHS.shortcuts}
           title={label}
-          subtitle={binding.command}
+          meta={binding.command}
           shortcut={formatShortcut(binding.shortcut!, api.isMac)}
           onSelect={async () => {
             api.record(`host:${binding.command}`);

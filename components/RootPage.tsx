@@ -1,24 +1,36 @@
-// The root list: recents, current-thread actions, threads, projects,
-// appearance, agent/CLI entry points, and every host command with a binding.
-import { useMemo, useSyncExternalStore } from "react";
+// The root list: recents, this thread's actions, threads, projects,
+// appearance, entry points, and every host command with a binding.
+import { useCallback, useDeferredValue, useMemo, useSyncExternalStore, type ReactNode } from "react";
 import { toast } from "sonner";
+import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { CommandGroup } from "@/components/ui/command";
+import { LoadingRows } from "@/components/LoadingRows";
 import { PaletteRow } from "@/components/PaletteRow";
-import { ThreadRow, threadTitle } from "@/components/ThreadRow";
+import { ProjectIcon } from "@/components/ProjectIcon";
+import { ThemeDot } from "@/components/ThemeDot";
+import { ThreadRow } from "@/components/ThreadRow";
+import { VirtualThreadList } from "@/components/VirtualThreadList";
+import { FaviconDot } from "@/components/pages/FaviconPage";
 import { usePaletteApi, useRegisterActions, type PaletteApi } from "@/components/PaletteContext";
 import { buildThreadActions } from "@/components/pages/ThreadActionsPage";
+import { isListedThread, sortThreads, themeAction, threadOpenAction } from "@/lib/actions";
 import { APPEARANCE_MODES, readAppearanceMode, writeAppearanceMode, type AppearanceMode } from "@/lib/appearance";
+import { GLYPHS } from "@/lib/glyphs";
 import { findBinding, formatShortcut, HOST_COMMANDS } from "@/lib/host-commands";
 import { OPEN_LAUNCHER_EVENT } from "@/lib/launcher";
 import { GROUP_ORDER, type Action, type PrefixMode } from "@/lib/palette-types";
 import { rank, recentsStore } from "@/lib/recents";
+import { rankThreads } from "@/lib/thread-search";
 
+/** Threads shown in the root list before you type. */
 const ROOT_THREAD_CAP = 8;
-const SEARCH_THREAD_CAP = 300;
+/** Best thread matches shown among a root search's commands and themes; `@` mode has no cap. */
+const SEARCH_THREAD_CAP = 50;
 const RECENT_CAP = 5;
+const COMMAND_GROUPS = GROUP_ORDER.filter((group) => !["Recent", "Threads", "Projects"].includes(group));
 
-const MODE_LABEL: Record<AppearanceMode, string> = { light: "Light", dark: "Dark", system: "System" };
-const MODE_ICON: Record<AppearanceMode, string> = { light: "Eye", dark: "EyeOff", system: "Laptop" };
+const MODE_LABEL: Record<AppearanceMode, string> = { light: "Light mode", dark: "Dark mode", system: "Match system" };
+const MODE_GLYPH: Record<AppearanceMode, Action["glyph"]> = { light: "light", dark: "dark", system: "system" };
 
 function newThread(api: PaletteApi): Action {
   const launcher = api.bootstrap?.launcherInstalled === true;
@@ -26,9 +38,9 @@ function newThread(api: PaletteApi): Action {
     id: "new-thread",
     title: "New thread",
     subtitle: launcher ? "Ultra Launcher" : undefined,
-    icon: "MessageSquarePlus",
+    glyph: "newThread",
     group: "Agent & CLI",
-    keywords: ["create", "start", "compose", "cmd+n"],
+    keywords: ["create", "start", "compose", "cmd+n", "launcher"],
     run: () => {
       api.record("new-thread");
       api.close();
@@ -44,35 +56,37 @@ function appearanceActions(api: PaletteApi, current: AppearanceMode): Action[] {
   return [
     {
       id: "theme:pick",
-      title: `Theme: ${activeTheme?.name ?? theme?.activeId ?? "…"}`,
-      icon: "Palette",
+      title: "Change theme",
+      subtitle: activeTheme?.name ?? theme?.activeId,
+      glyph: "theme",
       group: "Appearance",
-      keywords: ["theme", "palette", "colors", "dracula", "nord", "catppuccin"],
+      keywords: ["theme", "themes", "palette", "colors", "color scheme", "skin"],
       run: () => api.push({ kind: "themes" }),
       page: { kind: "themes" },
     },
     ...APPEARANCE_MODES.map(
       (mode): Action => ({
         id: `appearance:${mode}`,
-        title: `${MODE_LABEL[mode]} appearance`,
-        subtitle: mode === current ? "Active" : undefined,
-        icon: MODE_ICON[mode],
+        title: MODE_LABEL[mode],
+        glyph: MODE_GLYPH[mode],
         group: "Appearance",
-        keywords: ["light", "dark", "mode", "system", "appearance", mode],
+        keywords: ["appearance", "light", "dark", "system", "mode", "night", "day", mode],
+        active: mode === current,
         run: () => {
           writeAppearanceMode(mode);
           api.record(`appearance:${mode}`);
-          toast.success(`${MODE_LABEL[mode]} appearance`);
+          toast.success(MODE_LABEL[mode]);
           api.close();
         },
       }),
     ),
     {
       id: "favicon:pick",
-      title: `Favicon color: ${theme?.faviconColor ?? "…"}`,
-      icon: "Circle",
+      title: "Favicon color",
+      subtitle: theme?.faviconColor === "default" ? undefined : theme?.faviconColor,
+      glyph: "favicon",
       group: "Appearance",
-      keywords: ["favicon", "tab icon", "color"],
+      keywords: ["favicon", "tab icon", "dock icon", "color"],
       run: () => api.push({ kind: "favicon" }),
       page: { kind: "favicon" },
     },
@@ -82,58 +96,26 @@ function appearanceActions(api: PaletteApi, current: AppearanceMode): Action[] {
 function agentActions(api: PaletteApi): Action[] {
   return [
     newThread(api),
-    {
-      id: "cli",
-      title: "Run a bb command…",
-      subtitle: "$",
-      icon: "Terminal",
-      group: "Agent & CLI",
-      keywords: ["bb", "cli", "shell", "run"],
-      run: () => api.setQuery("$ "),
-    },
-    {
-      id: "skills",
-      title: "Skills…",
-      subtitle: "/",
-      icon: "Zap",
-      group: "Agent & CLI",
-      keywords: ["skill", "slash", "command"],
-      run: () => api.setQuery("/"),
-    },
-    {
-      id: "plugins",
-      title: "Plugins…",
-      icon: "Puzzle",
-      group: "Agent & CLI",
-      keywords: ["extensions", "reload", "enable", "disable"],
-      run: () => api.push({ kind: "plugins" }),
-      page: { kind: "plugins" },
-    },
-    {
-      id: "shortcuts",
-      title: "Keyboard shortcuts…",
-      subtitle: "?",
-      icon: "CircleQuestion",
-      group: "Agent & CLI",
-      keywords: ["keys", "hotkeys", "bindings", "help"],
-      run: () => api.setQuery("?"),
-    },
+    { id: "cli", title: "Run a bb command", subtitle: "$", glyph: "cli", group: "Agent & CLI", keywords: ["bb", "cli", "shell", "run", "terminal", "command"], run: () => api.setQuery("$ ") },
+    { id: "skills", title: "Skills", subtitle: "/", glyph: "skills", group: "Agent & CLI", keywords: ["skill", "slash", "slash command"], run: () => api.setQuery("/") },
+    { id: "plugins", title: "Plugins", glyph: "plugins", group: "Agent & CLI", keywords: ["extensions", "reload", "enable", "disable", "logs"], run: () => api.push({ kind: "plugins" }), page: { kind: "plugins" } },
+    { id: "shortcuts", title: "Keyboard shortcuts", subtitle: "?", glyph: "shortcuts", group: "Agent & CLI", keywords: ["keys", "hotkeys", "bindings", "help", "cheat sheet"], run: () => api.setQuery("?") },
   ];
 }
 
 function hostActions(api: PaletteApi): Action[] {
   const bindings = api.bootstrap?.keybindings ?? [];
   const onThread = api.bbContext.threadId !== null;
-  return HOST_COMMANDS.filter((spec) => onThread || !spec.id.startsWith("thread.rename") && !spec.id.startsWith("thread.archive"))
-    .map((spec): Action => {
+  return HOST_COMMANDS.filter((spec) => onThread || (spec.id !== "thread.rename" && spec.id !== "thread.archive")).map(
+    (spec): Action => {
       const binding = findBinding(bindings, spec.id);
       return {
         id: `host:${spec.id}`,
         title: spec.title,
-        subtitle: binding ? spec.description : "No shortcut bound",
-        icon: spec.icon,
+        subtitle: binding ? undefined : "No shortcut bound",
+        glyph: spec.glyph,
         group: spec.group,
-        keywords: [spec.description, ...(spec.keywords ?? [])],
+        keywords: spec.keywords ?? [],
         shortcut: binding?.shortcut ? formatShortcut(binding.shortcut, api.isMac) : undefined,
         disabled: binding === null,
         run: async () => {
@@ -142,7 +124,25 @@ function hostActions(api: PaletteApi): Action[] {
           if (!handled) toast.error(`bb did not handle "${spec.title}" here.`);
         },
       };
-    });
+    },
+  );
+}
+
+function projectAction(api: PaletteApi, project: PaletteApi["threads"]["projects"][number]): Action {
+  return {
+    id: `project:${project.id}`,
+    title: project.name,
+    glyph: project.isPersonal ? "personal" : "folder",
+    group: "Projects",
+    keywords: ["project", project.name],
+    run: () => {
+      api.record("project:open");
+      api.nav.toProject(project.id);
+      api.close();
+    },
+    secondary: () => api.push({ kind: "project", projectId: project.id }),
+    page: { kind: "project", projectId: project.id },
+  };
 }
 
 export function useRootActions(api: PaletteApi): { actions: Action[]; byId: Map<string, Action> } {
@@ -153,73 +153,16 @@ export function useRootActions(api: PaletteApi): { actions: Action[]; byId: Map<
   return useMemo(() => {
     const list: Action[] = [
       ...(currentThread
-        ? buildThreadActions(api, currentThread, "Current thread").filter((action) => !action.id.endsWith(":open"))
+        ? buildThreadActions(api, currentThread, "This thread").filter((action) => !action.id.endsWith(":open"))
         : []),
       ...appearanceActions(api, appearance),
       ...agentActions(api),
       ...hostActions(api),
+      ...api.threads.threads.filter((thread) => !thread.isArchived).map((thread) => threadOpenAction(api, thread)),
+      ...api.threads.projects.map((project) => projectAction(api, project)),
+      ...(api.bootstrap?.theme.entries ?? []).map((entry) => themeAction(api, entry)),
     ];
-    for (const thread of api.threads.threads) {
-      if (thread.isArchived) continue;
-      list.push({
-        id: `thread:${thread.id}:open`,
-        title: threadTitle(thread),
-        icon: "MessageSquare",
-        group: "Threads",
-        run: () => {
-          api.record("thread:open");
-          api.threadActions.open(thread.id);
-          api.close();
-        },
-        secondary: () => {
-          api.record("thread:open-split");
-          api.threadActions.open(thread.id, { split: true });
-          api.close();
-        },
-        secondaryHint: "Open in split",
-        page: { kind: "thread", threadId: thread.id },
-      });
-    }
-    for (const project of api.threads.projects) {
-      list.push({
-        id: `project:${project.id}`,
-        title: project.name,
-        icon: project.isPersonal ? "UserRound" : "Folder",
-        group: "Projects",
-        keywords: ["project", project.name],
-        run: () => {
-          api.record("project:open");
-          api.nav.toProject(project.id);
-          api.close();
-        },
-        secondary: () => api.push({ kind: "project", projectId: project.id }),
-        page: { kind: "project", projectId: project.id },
-      });
-    }
-    for (const entry of api.bootstrap?.theme.entries ?? []) {
-      list.push({
-        id: `theme:${entry.id}`,
-        title: `Theme: ${entry.name}`,
-        icon: "Palette",
-        group: "Appearance",
-        // Found by the theme's own name, never by the word "theme" — that
-        // belongs to the picker row so a generic query lands there.
-        searchText: [entry.name, entry.id],
-        run: async () => {
-          try {
-            await api.rpc.call("set_theme", { themeId: entry.id });
-            api.record(`theme:${entry.id}`);
-            await api.refreshBootstrap();
-            toast.success(`Theme: ${entry.name}`);
-            api.close();
-          } catch (error) {
-            api.reportError(error);
-          }
-        },
-      });
-    }
     return { actions: list, byId: new Map(list.map((action) => [action.id, action])) };
-    // bootstrap/threads/context are the inputs that change what rows exist.
   }, [api, appearance, currentThread]);
 }
 
@@ -228,20 +171,36 @@ function useRecentIds(): string[] {
   return useMemo(() => rank(map, Date.now(), 20), [map]);
 }
 
-function ActionRows({ actions }: { actions: readonly Action[] }) {
+/** Rows that draw something richer than a glyph in the leading slot. */
+function leadingNode(api: PaletteApi, action: Action): ReactNode {
+  if (action.id.startsWith("project:")) {
+    return <ProjectIcon projectId={action.id.slice("project:".length)} isPersonal={action.glyph === "personal"} className="size-4" />;
+  }
+  if (action.id.startsWith("theme:") && action.id !== "theme:pick") {
+    const themeId = action.id.slice("theme:".length);
+    return <ThemeDot swatch={api.bootstrap?.theme.entries.find((entry) => entry.id === themeId)?.swatch} />;
+  }
+  if (action.id === "favicon:pick" && api.bootstrap) return <FaviconDot color={api.bootstrap.theme.faviconColor} />;
+  return undefined;
+}
+
+function ActionRows({ actions, api, valuePrefix = "" }: { actions: readonly Action[]; api: PaletteApi; valuePrefix?: string }) {
   return (
     <>
       {actions.map((action) => (
         <PaletteRow
           key={action.id}
-          value={action.id}
-          data-action-id={action.id}
+          value={`${valuePrefix}${action.id}`}
+          data-action-id={`${valuePrefix}${action.id}`}
           keywords={action.searchText ?? [action.title, action.subtitle ?? "", ...(action.keywords ?? [])]}
+          glyph={action.glyph ? GLYPHS[action.glyph] : undefined}
           icon={action.icon}
+          iconNode={leadingNode(api, action)}
           title={action.title}
-          subtitle={action.subtitle}
+          meta={action.subtitle}
           shortcut={action.shortcut}
           disabled={action.disabled}
+          active={action.active}
           hasPage={action.page !== undefined}
           onSelect={() => void action.run()}
         />
@@ -257,81 +216,83 @@ export function RootPage({ mode, text }: { mode: PrefixMode; text: string }) {
   const recentIds = useRecentIds();
 
   const searching = text.trim() !== "";
-  const showThreads = mode === "root" || mode === "threads";
+  const virtual = mode === "threads";
+  const showThreads = mode === "root" || virtual;
   const showProjects = mode === "root" || mode === "projects";
   const showCommands = mode === "root" || mode === "commands";
+  const loadingThreads = api.threads.status === "loading";
+  const loadingCommands = api.bootstrap === null;
 
-  const projects = new Map(api.threads.projects.map((project) => [project.id, project]));
-  const threads = api.threads.threads
-    .filter((thread) => !thread.isArchived && thread.parentThreadId === null)
-    .sort(
-      (a, b) =>
-        Number(b.isPinned) - Number(a.isPinned) ||
-        Number(b.isUnread) - Number(a.isUnread) ||
-        b.updatedAt - a.updatedAt,
-    )
-    .slice(0, mode === "threads" || searching ? SEARCH_THREAD_CAP : ROOT_THREAD_CAP);
+  const projects = useMemo(() => new Map(api.threads.projects.map((project) => [project.id, project])), [api.threads.projects]);
+  const projectName = useCallback((thread: PluginSidebarThread) => projects.get(thread.projectId)?.name, [projects]);
+  const listed = useMemo(() => sortThreads(api.threads.threads.filter(isListedThread)), [api.threads.threads]);
+  // Ranking a large list lags one keystroke behind typing rather than blocking it.
+  const deferredText = useDeferredValue(text);
+  const threads = useMemo(() => {
+    if (virtual) return rankThreads(listed, deferredText, projectName);
+    if (searching) return rankThreads(listed, deferredText, projectName).slice(0, SEARCH_THREAD_CAP);
+    return listed.slice(0, ROOT_THREAD_CAP);
+  }, [listed, virtual, searching, deferredText, projectName]);
 
-  const recents = !searching && mode === "root"
-    ? recentIds
-        .map((id) => byId.get(id))
-        .filter((action): action is Action => action !== undefined && !action.disabled)
-        .slice(0, RECENT_CAP)
-    : [];
+  const recents =
+    !searching && mode === "root"
+      ? recentIds
+          .map((id) => byId.get(id))
+          .filter((action): action is Action => action !== undefined && !action.disabled)
+          .slice(0, RECENT_CAP)
+      : [];
 
-  const commandGroups = GROUP_ORDER.filter((group) => !["Recent", "Threads", "Projects"].includes(group)).map(
-    (group) => ({
-      group,
-      actions: actions.filter(
-        (action) =>
-          action.group === group &&
-          (action.id === "theme:pick" || !action.id.startsWith("theme:")) &&
-          !action.id.startsWith("thread:"),
-      ),
-    }),
-  );
+  const commandGroups = COMMAND_GROUPS.map((group) => ({
+    group,
+    actions: actions.filter(
+      (action) =>
+        action.group === group &&
+        (action.id === "theme:pick" || !action.id.startsWith("theme:")) &&
+        !action.id.startsWith("thread:") &&
+        // Unbound host commands only show while searching for them.
+        (searching || !action.disabled),
+    ),
+  })).filter((entry) => entry.actions.length > 0);
 
   return (
     <>
       {recents.length > 0 ? (
         <CommandGroup heading="Recent">
-          <ActionRows actions={recents.map((action) => ({ ...action, id: `recent:${action.id}` }))} />
+          <ActionRows api={api} actions={recents} valuePrefix="recent:" />
         </CommandGroup>
       ) : null}
-      {showThreads && threads.length > 0 ? (
+      {showThreads && loadingThreads ? <LoadingRows count={5} /> : null}
+      {virtual && !loadingThreads ? (
+        <VirtualThreadList threads={threads} projects={projects} byId={byId} query={deferredText} />
+      ) : showThreads && threads.length > 0 ? (
         <CommandGroup heading="Threads">
-          {threads.map((thread) => {
-            const action = byId.get(`thread:${thread.id}:open`);
-            return (
-              <ThreadRow
-                key={thread.id}
-                thread={thread}
-                project={projects.get(thread.projectId)}
-                actionId={`thread:${thread.id}:open`}
-                onSelect={() => void action?.run()}
-              />
-            );
-          })}
+          {threads.map((thread) => (
+            <ThreadRow
+              key={thread.id}
+              thread={thread}
+              project={projects.get(thread.projectId)}
+              actionId={`thread:${thread.id}:open`}
+              onSelect={() => void byId.get(`thread:${thread.id}:open`)?.run()}
+            />
+          ))}
         </CommandGroup>
       ) : null}
       {showProjects && api.threads.projects.length > 0 ? (
         <CommandGroup heading="Projects">
-          <ActionRows actions={actions.filter((action) => action.group === "Projects")} />
+          <ActionRows api={api} actions={actions.filter((action) => action.group === "Projects")} />
         </CommandGroup>
       ) : null}
+      {showCommands && loadingCommands && !loadingThreads ? <LoadingRows count={3} /> : null}
       {showCommands
-        ? commandGroups
-            .filter((entry) => entry.actions.length > 0)
-            .map((entry) => (
-              <CommandGroup key={entry.group} heading={entry.group}>
-                <ActionRows actions={entry.actions} />
-              </CommandGroup>
-            ))
+        ? commandGroups.map((entry) => (
+            <CommandGroup key={entry.group} heading={entry.group}>
+              <ActionRows api={api} actions={entry.actions} />
+            </CommandGroup>
+          ))
         : null}
-      {/* Theme rows exist only so "dracula" finds a theme while searching. */}
       {showCommands && searching ? (
         <CommandGroup heading="Themes">
-          <ActionRows actions={actions.filter((action) => action.id.startsWith("theme:") && action.id !== "theme:pick")} />
+          <ActionRows api={api} actions={actions.filter((action) => action.id.startsWith("theme:") && action.id !== "theme:pick")} />
         </CommandGroup>
       ) : null}
     </>

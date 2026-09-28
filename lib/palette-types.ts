@@ -51,6 +51,8 @@ export type Action = {
   shortcut?: string[];
   disabled?: boolean;
   disabledReason?: string;
+  /** Shows a check: the option currently in effect. */
+  active?: boolean;
   run: ActionRun;
   secondary?: ActionRun;
   secondaryHint?: string;

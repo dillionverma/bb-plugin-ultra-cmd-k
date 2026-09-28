@@ -1,18 +1,19 @@
 // A thread in the palette, composed like an Ultra Sidebar row: the agent's
 // orb while it is in motion or waiting on you, else Linear's status ring;
 // the title; then muted meta — provider logo, project, branch, age.
-import { experimental_ProviderIcon as ProviderIcon, experimental_useProviders } from "@get-bb/plugin-sdk/app";
+import { memo } from "react";
+import { experimental_ProviderIcon as ProviderIcon } from "@get-bb/plugin-sdk/app";
 import type { PluginSidebarProject, PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { PaletteRow } from "@/components/PaletteRow";
+import { usePaletteApi } from "@/components/PaletteContext";
 import { ProjectIcon } from "@/components/ProjectIcon";
 import { StatusIcon, type StatusTone } from "@/components/StatusIcon";
 import { ThreadOrb, agentOrb } from "@/components/ThreadOrb";
 import { GLYPHS } from "@/lib/glyphs";
+import { threadSearchText, threadTitle } from "@/lib/thread-search";
 
-export function threadTitle(thread: PluginSidebarThread): string {
-  return thread.title ?? thread.titleFallback ?? "Untitled thread";
-}
+export { threadTitle };
 
 export function relativeTime(timestamp: number, now = Date.now()): string {
   const seconds = Math.max(0, Math.round((now - timestamp) / 1000));
@@ -44,7 +45,7 @@ export function ThreadGlyph({ thread }: { thread: PluginSidebarThread }) {
   return <StatusIcon tone={threadTone(thread)} />;
 }
 
-export function ThreadRow({
+export const ThreadRow = memo(function ThreadRow({
   thread,
   project,
   actionId,
@@ -57,16 +58,15 @@ export function ThreadRow({
   onSelect: () => void;
   showProject?: boolean;
 }) {
-  const providers = experimental_useProviders();
-  const provider = providers.providers.find((entry) => entry.id === thread.providerId) ?? { id: thread.providerId };
+  const api = usePaletteApi();
+  const provider = api.providers.get(thread.providerId) ?? { id: thread.providerId };
   const title = threadTitle(thread);
   const branch = thread.environment?.branchName ?? null;
-  const keywords = [title, project?.name ?? "", branch ?? "", thread.host?.name ?? ""].filter(Boolean);
   return (
     <PaletteRow
       value={actionId}
       data-action-id={actionId}
-      keywords={keywords}
+      keywords={[threadSearchText(thread, project?.name)]}
       iconNode={<ThreadGlyph thread={thread} />}
       title={title}
       hasPage
@@ -92,4 +92,4 @@ export function ThreadRow({
       }
     />
   );
-}
+});

@@ -14,14 +14,17 @@
 //    shells.
 import { type BbPluginApi } from "@get-bb/plugin-sdk";
 import {
+  BOOTSTRAP_CHANNEL,
   hostContract,
   rpcContract,
   type Bootstrap,
+  type BootstrapSignal,
   type FaviconColor,
   type HotkeyStatus,
   type Shortcut,
   type ThemeEntry,
 } from "./lib/contract";
+import { BUILTIN_SWATCHES, parseThemeSwatch } from "./lib/theme-swatch";
 
 // --- Hotkey takeover -------------------------------------------------------
 
@@ -71,22 +74,25 @@ function describe(status: Omit<HotkeyStatus, "description">): string {
 }
 
 /** bb's built-in palettes are not reported by `theme.catalog()`. */
-export const BUILTIN_THEMES: readonly ThemeEntry[] = [
-  { id: "default", name: "Default", description: "The standard bb look", kind: "builtin" },
-  { id: "nord", name: "Nord", description: "Cool, muted arctic blues", kind: "builtin" },
-  { id: "dracula", name: "Dracula", description: "Dark, high-contrast purple and pink", kind: "builtin" },
-  { id: "solarized", name: "Solarized", description: "Balanced light and dark", kind: "builtin" },
-  { id: "gruvbox", name: "Gruvbox", description: "Warm retro earth tones", kind: "builtin" },
-  { id: "catppuccin", name: "Catppuccin", description: "Soothing pastel", kind: "builtin" },
+const BUILTIN_THEME_INFO: ReadonlyArray<Pick<ThemeEntry, "id" | "name" | "description">> = [
+  { id: "default", name: "Default", description: "The standard bb look" },
+  { id: "nord", name: "Nord", description: "Cool, muted arctic blues" },
+  { id: "dracula", name: "Dracula", description: "Dark, high-contrast purple and pink" },
+  { id: "solarized", name: "Solarized", description: "Balanced light and dark" },
+  { id: "gruvbox", name: "Gruvbox", description: "Warm retro earth tones" },
+  { id: "catppuccin", name: "Catppuccin", description: "Soothing pastel" },
 ];
+export const BUILTIN_THEMES: readonly ThemeEntry[] = BUILTIN_THEME_INFO.map((entry) => ({
+  ...entry,
+  kind: "builtin",
+  swatch: BUILTIN_SWATCHES[entry.id] ?? null,
+}));
 
-export function titleCase(id: string): string {
-  return id
-    .split(/[-_]+/)
-    .filter(Boolean)
-    .map((part) => part[0]!.toUpperCase() + part.slice(1))
-    .join(" ");
-}
+/** System changes that invalidate something the bootstrap was built from. */
+const BOOTSTRAP_TRIGGERS: ReadonlySet<string> = new Set(["config-changed", "ui-preferences-changed", "plugins-changed"]);
+/** Coalesce a burst of changes (a theme preview scrub, a plugin reload) into one signal. */
+const SIGNAL_COALESCE_MS = 150;
+
 
 export default async function plugin(bb: BbPluginApi) {
   bb.log.info("loaded");
@@ -154,17 +160,34 @@ export default async function plugin(bb: BbPluginApi) {
 
   // --- theme ----------------------------------------------------------------
 
+  /** Anchors from the theme's own stylesheet; null when it declares none we can use. */
+  async function themeSwatch(themeId: string) {
+    try {
+      const resolved = await bb.sdk.theme.resolve({ themeId });
+      return parseThemeSwatch(resolved.customCss);
+    } catch (error) {
+      bb.log.debug(`swatch for ${themeId} unavailable: ${error instanceof Error ? error.message : String(error)}`);
+      return null;
+    }
+  }
+
   async function themeState() {
     const catalog = await bb.sdk.theme.catalog();
-    const entries: ThemeEntry[] = [
-      ...BUILTIN_THEMES,
-      ...catalog.custom.map((id) => ({ id, name: titleCase(id), description: null, kind: "custom" as const })),
+    const contributed = [
+      // Custom themes are folders under ~/.bb/theme; the folder name is the
+      // theme id and the only name bb has for it, so show it verbatim.
+      ...catalog.custom.map((id) => ({ id, name: id, description: `~/.bb/theme/${id}`, kind: "custom" as const })),
       ...catalog.plugins.map((entry) => ({
         id: entry.id,
         name: entry.name,
         description: entry.description,
         kind: "plugin" as const,
       })),
+    ];
+    const swatches = await Promise.all(contributed.map((entry) => themeSwatch(entry.id)));
+    const entries: ThemeEntry[] = [
+      ...BUILTIN_THEMES,
+      ...contributed.map((entry, index) => ({ ...entry, swatch: swatches[index] ?? null })),
     ];
     return { activeId: catalog.active.themeId, faviconColor: catalog.active.faviconColor, entries };
   }
@@ -221,6 +244,37 @@ export default async function plugin(bb: BbPluginApi) {
       primaryHostId: config.primaryHostId,
     };
   }
+
+  // --- realtime -------------------------------------------------------------
+  // Everything in the bootstrap has a bb change event. Rather than have each
+  // window refetch on a timer, forward those events as one coalesced signal
+  // and let the app refetch exactly when something changed.
+
+  let signalTimer: ReturnType<typeof setTimeout> | null = null;
+  const pendingReasons = new Set<string>();
+
+  function signalBootstrapChanged(reason: string): void {
+    pendingReasons.add(reason);
+    if (signalTimer !== null) return;
+    signalTimer = setTimeout(() => {
+      signalTimer = null;
+      const signal: BootstrapSignal = { reasons: [...pendingReasons], at: Date.now() };
+      pendingReasons.clear();
+      bb.realtime.publish(BOOTSTRAP_CHANNEL, signal);
+      bb.log.debug(`bootstrap signal: ${signal.reasons.join(", ")}`);
+    }, SIGNAL_COALESCE_MS);
+  }
+
+  const unsubscribe = [
+    bb.sdk.subscribe({
+      event: "system:changed",
+      callback: (event) => {
+        for (const change of event.changes) if (BOOTSTRAP_TRIGGERS.has(change)) signalBootstrapChanged(change);
+      },
+    }),
+    bb.sdk.subscribe({ event: "system:config-changed", callback: () => signalBootstrapChanged("config-changed") }),
+    bb.sdk.subscribe({ event: "host:changed", callback: () => signalBootstrapChanged("hosts-changed") }),
+  ];
 
   bb.rpc.register(rpcContract, {
     get_bootstrap: () => bootstrap(),
@@ -375,6 +429,8 @@ export default async function plugin(bb: BbPluginApi) {
   void settings.get().then((values) => syncHotkey(values.takeOverCmdK));
 
   bb.onDispose(() => {
+    for (const stop of unsubscribe) stop();
+    if (signalTimer !== null) clearTimeout(signalTimer);
     bb.log.info("disposed");
   });
 }

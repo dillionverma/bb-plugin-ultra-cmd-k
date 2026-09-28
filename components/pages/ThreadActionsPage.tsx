@@ -1,4 +1,4 @@
-// Actions for one thread. Reused by the "Current thread" group on the root
+// Actions for one thread. Reused by the "This thread" group on the root
 // page (same builder) and by → / Tab on any thread row.
 import { useMemo } from "react";
 import { toast } from "sonner";
@@ -6,7 +6,8 @@ import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { CommandGroup } from "@/components/ui/command";
 import { PaletteRow } from "@/components/PaletteRow";
 import { usePaletteApi, useRegisterActions, type PaletteApi } from "@/components/PaletteContext";
-import { threadTitle } from "@/components/ThreadRow";
+import { ThreadGlyph, threadTitle } from "@/components/ThreadRow";
+import { GLYPHS } from "@/lib/glyphs";
 import type { Action } from "@/lib/palette-types";
 import type { ThreadAction } from "@/lib/contract";
 
@@ -27,15 +28,13 @@ function serverAction(api: PaletteApi, threadId: string, action: ThreadAction, d
 /** Rows for a thread; `group` names the cmdk group they render under. */
 export function buildThreadActions(api: PaletteApi, thread: PluginSidebarThread, group: string): Action[] {
   const id = thread.id;
-  const title = threadTitle(thread);
   const busy = thread.indicator === "runtime" || thread.activity.backgroundAgents + thread.activity.workflows > 0;
   const prefix = `thread:${id}:`;
   const actions: Action[] = [
     {
       id: `${prefix}open`,
       title: "Open",
-      subtitle: title,
-      icon: "ArrowUpRight",
+      glyph: "open",
       group,
       keywords: ["go to", "jump"],
       run: () => {
@@ -53,7 +52,7 @@ export function buildThreadActions(api: PaletteApi, thread: PluginSidebarThread,
     {
       id: `${prefix}split`,
       title: "Open in split",
-      icon: "Columns2",
+      glyph: "split",
       group,
       keywords: ["side by side", "pane"],
       run: () => {
@@ -64,10 +63,10 @@ export function buildThreadActions(api: PaletteApi, thread: PluginSidebarThread,
     },
     {
       id: `${prefix}send`,
-      title: "Send a message…",
-      icon: "Sent",
+      title: "Send a message",
+      glyph: "send",
       group,
-      keywords: ["prompt", "steer", "queue"],
+      keywords: ["prompt", "steer", "queue", "tell"],
       run: () => api.push({ kind: "send", threadId: id }),
       page: { kind: "send", threadId: id },
     },
@@ -76,7 +75,7 @@ export function buildThreadActions(api: PaletteApi, thread: PluginSidebarThread,
           {
             id: `${prefix}stop`,
             title: "Stop",
-            icon: "Square",
+            glyph: "stop",
             group,
             keywords: ["cancel", "abort", "interrupt"],
             run: serverAction(api, id, "stop", "Stopped"),
@@ -86,7 +85,7 @@ export function buildThreadActions(api: PaletteApi, thread: PluginSidebarThread,
     {
       id: `${prefix}pin`,
       title: thread.isPinned ? "Unpin" : "Pin",
-      icon: thread.isPinned ? "PinOff" : "Pin",
+      glyph: thread.isPinned ? "unpin" : "pin",
       group,
       run: async () => {
         await api.threadActions.setPinned(id, !thread.isPinned);
@@ -98,7 +97,7 @@ export function buildThreadActions(api: PaletteApi, thread: PluginSidebarThread,
     {
       id: `${prefix}read`,
       title: thread.isUnread ? "Mark as read" : "Mark as unread",
-      icon: thread.isUnread ? "MailOpen" : "Mail",
+      glyph: thread.isUnread ? "markRead" : "markUnread",
       group,
       run: async () => {
         await api.threadActions.setRead(id, thread.isUnread);
@@ -108,11 +107,11 @@ export function buildThreadActions(api: PaletteApi, thread: PluginSidebarThread,
     },
     {
       id: `${prefix}rename`,
-      title: "Rename…",
-      icon: "Edit",
+      title: "Rename",
+      glyph: "rename",
       group,
       keywords: ["title"],
-      subtitle: api.bbContext.threadId === id ? undefined : "Opens the thread first",
+      subtitle: api.bbContext.threadId === id ? undefined : "opens the thread first",
       run: async () => {
         if (api.bbContext.threadId !== id) api.threadActions.open(id);
         const handled = await api.relay("thread.rename");
@@ -123,15 +122,15 @@ export function buildThreadActions(api: PaletteApi, thread: PluginSidebarThread,
     {
       id: `${prefix}fork`,
       title: "Fork",
-      subtitle: "New thread continuing from here",
-      icon: "Fork",
+      subtitle: "new thread from here",
+      glyph: "fork",
       group,
       run: serverAction(api, id, "fork", "Forked"),
     },
     {
       id: `${prefix}compact`,
       title: "Compact context",
-      icon: "CircleArrowShrink",
+      glyph: "compact",
       group,
       keywords: ["summarize", "context window"],
       run: serverAction(api, id, "compact", "Compacting…"),
@@ -139,7 +138,7 @@ export function buildThreadActions(api: PaletteApi, thread: PluginSidebarThread,
     {
       id: `${prefix}archive`,
       title: thread.isArchived ? "Unarchive" : "Archive",
-      icon: thread.isArchived ? "ArchiveRestore" : "Archive",
+      glyph: thread.isArchived ? "unarchive" : "archive",
       group,
       run: thread.isArchived
         ? serverAction(api, id, "unarchive", "Unarchived")
@@ -154,7 +153,7 @@ export function buildThreadActions(api: PaletteApi, thread: PluginSidebarThread,
       id: `${prefix}copy-id`,
       title: "Copy thread id",
       subtitle: id,
-      icon: "Copy",
+      glyph: "copy",
       group,
       run: async () => {
         await navigator.clipboard.writeText(id);
@@ -165,9 +164,9 @@ export function buildThreadActions(api: PaletteApi, thread: PluginSidebarThread,
     },
     {
       id: `${prefix}delete`,
-      title: "Delete…",
-      subtitle: "Asks for confirmation",
-      icon: "Trash2",
+      title: "Delete",
+      subtitle: "asks first",
+      glyph: "trash",
       group,
       run: () => {
         api.threadActions.requestDelete(id);
@@ -194,16 +193,23 @@ export function ThreadActionsPage({ threadId }: { threadId: string }) {
     );
   }
   return (
-    <CommandGroup heading={threadTitle(thread)}>
+    <CommandGroup
+      heading={
+        <span className="inline-flex items-center gap-1.5">
+          <ThreadGlyph thread={thread} />
+          <span className="truncate">{threadTitle(thread)}</span>
+        </span>
+      }
+    >
       {actions.map((action) => (
         <PaletteRow
           key={action.id}
           value={action.id}
           data-action-id={action.id}
           keywords={[action.title, ...(action.keywords ?? [])]}
-          icon={action.icon}
+          glyph={action.glyph ? GLYPHS[action.glyph] : undefined}
           title={action.title}
-          subtitle={action.subtitle}
+          meta={action.subtitle}
           hasPage={action.page !== undefined}
           onSelect={() => void action.run()}
         />

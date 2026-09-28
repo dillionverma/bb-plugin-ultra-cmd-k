@@ -4,19 +4,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { CommandGroup } from "@/components/ui/command";
+import { LoadingRows } from "@/components/LoadingRows";
 import { PaletteRow } from "@/components/PaletteRow";
 import { usePaletteApi, useRegisterActions, type PaletteApi } from "@/components/PaletteContext";
 import type { SkillEntry } from "@/lib/contract";
+import { GLYPHS } from "@/lib/glyphs";
 import type { Action } from "@/lib/palette-types";
 
 const SCOPE_LABEL: Record<string, string> = {
-  "bb-builtin": "Built-in",
+  "bb-builtin": "Built in",
   "bb-project": "Project",
-  "bb-user": "User",
+  "bb-user": "Yours",
   "provider-project": "Project (provider)",
-  "provider-user": "User (provider)",
+  "provider-user": "Yours (provider)",
   "shared-project": "Project (shared)",
-  "shared-user": "User (shared)",
+  "shared-user": "Yours (shared)",
   plugin: "From plugins",
 };
 
@@ -28,7 +30,7 @@ function buildSkillActions(api: PaletteApi, skills: readonly SkillEntry[], threa
       id,
       title: slash,
       subtitle: skill.description ?? undefined,
-      icon: "Zap",
+      glyph: "skills",
       group: SCOPE_LABEL[skill.scope] ?? skill.scope,
       keywords: [skill.name, skill.description ?? ""],
       run: () => {
@@ -48,17 +50,17 @@ function buildSkillActions(api: PaletteApi, skills: readonly SkillEntry[], threa
                 api.reportError(error);
               }
             },
-            secondaryHint: "Send to current thread",
+            secondaryHint: "Send to this thread",
           }
         : {}),
     };
   });
 }
 
-function Notice({ icon, text }: { icon: string; text: string }) {
+function Notice({ text }: { text: string }) {
   return (
     <CommandGroup heading="Skills">
-      <PaletteRow value={`skills:${text}`} keywords={[]} icon={icon} title={text} disabled onSelect={() => {}} />
+      <PaletteRow value={`skills:${text}`} keywords={[]} icon="Info" title={text} disabled onSelect={() => {}} />
     </CommandGroup>
   );
 }
@@ -95,10 +97,10 @@ export function SkillsPage() {
   const actions = useMemo(() => buildSkillActions(api, skills ?? [], threadId), [api, skills, threadId]);
   useRegisterActions(actions);
 
-  if (projectId === null) return <Notice icon="AlertCircle" text="No project to list skills for" />;
-  if (error !== null) return <Notice icon="AlertCircle" text={error} />;
-  if (skills === null) return <Notice icon="Loading" text="Loading skills…" />;
-  if (skills.length === 0) return <Notice icon="Zap" text="No skills available in this project" />;
+  if (projectId === null) return <Notice text="No project to list skills for" />;
+  if (error !== null) return <Notice text={error} />;
+  if (skills === null) return <LoadingRows count={5} />;
+  if (skills.length === 0) return <Notice text="No skills available in this project" />;
 
   const groups = new Map<string, Action[]>();
   for (const action of actions) groups.set(action.group, [...(groups.get(action.group) ?? []), action]);
@@ -113,9 +115,9 @@ export function SkillsPage() {
               value={action.id}
               data-action-id={action.id}
               keywords={[action.title, ...(action.keywords ?? [])]}
-              icon={action.icon}
+              glyph={GLYPHS.skills}
               title={action.title}
-              subtitle={action.subtitle}
+              meta={action.subtitle}
               shortcut={secondaryKeys}
               onSelect={() => void action.run()}
             />

@@ -6,6 +6,7 @@
 // app shortcut, including ours).
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useBootstrapSync } from "@/components/BootstrapSync";
 import { Palette } from "@/components/Palette";
 import { isMacPlatform, isPaletteHotkey } from "@/lib/hotkey";
 import { OPEN_EVENT, paletteStore, usePaletteState } from "@/lib/palette-store";
@@ -22,6 +23,8 @@ export function PaletteOverlay() {
   const { open, openNonce, initialQuery } = usePaletteState();
   const scopeProps = usePortalScopeProps();
   const restoreFocus = useRef<HTMLElement | null>(null);
+  // Lives here, not in the palette, so server signals are heard while closed.
+  useBootstrapSync();
 
   // Global toggle: Ctrl/Cmd+K (capture phase so editors and terminals cannot
   // swallow it) plus the bridge event used by the palette row and footer.

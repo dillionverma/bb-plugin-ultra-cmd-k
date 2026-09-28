@@ -1,54 +1,39 @@
 import { useMemo } from "react";
 import { CommandGroup } from "@/components/ui/command";
 import { PaletteRow } from "@/components/PaletteRow";
+import { ProjectIcon } from "@/components/ProjectIcon";
 import { usePaletteApi, useRegisterActions } from "@/components/PaletteContext";
-import { ThreadRow, threadTitle } from "@/components/ThreadRow";
+import { ThreadRow } from "@/components/ThreadRow";
+import { isListedThread, sortThreads, threadOpenAction } from "@/lib/actions";
+import { GLYPHS } from "@/lib/glyphs";
 import { OPEN_LAUNCHER_EVENT } from "@/lib/launcher";
-import type { Action } from "@/lib/palette-types";
+
+const PROJECT_THREAD_CAP = 50;
 
 export function ProjectPage({ projectId }: { projectId: string }) {
   const api = usePaletteApi();
   const project = api.threads.projects.find((entry) => entry.id === projectId);
   const threads = useMemo(
-    () =>
-      api.threads.threads
-        .filter((thread) => thread.projectId === projectId && !thread.isArchived && thread.parentThreadId === null)
-        .sort((a, b) => Number(b.isPinned) - Number(a.isPinned) || b.updatedAt - a.updatedAt)
-        .slice(0, 50),
+    () => sortThreads(api.threads.threads.filter((thread) => thread.projectId === projectId && isListedThread(thread))).slice(0, PROJECT_THREAD_CAP),
     [api.threads.threads, projectId],
   );
-  const actions = useMemo(
-    () =>
-      threads.map(
-        (thread): Action => ({
-          id: `thread:${thread.id}:open`,
-          title: threadTitle(thread),
-          icon: "MessageSquare",
-          group: "Threads",
-          run: () => {
-            api.record("thread:open");
-            api.threadActions.open(thread.id);
-            api.close();
-          },
-          secondary: () => {
-            api.record("thread:open-split");
-            api.threadActions.open(thread.id, { split: true });
-            api.close();
-          },
-          page: { kind: "thread", threadId: thread.id },
-        }),
-      ),
-    [api, threads],
-  );
+  const actions = useMemo(() => threads.map((thread) => threadOpenAction(api, thread)), [api, threads]);
   useRegisterActions(actions);
   if (!project) return null;
   return (
     <>
-      <CommandGroup heading={project.name}>
+      <CommandGroup
+        heading={
+          <span className="inline-flex items-center gap-1.5">
+            <ProjectIcon projectId={project.id} isPersonal={project.isPersonal} className="size-3.5" />
+            {project.name}
+          </span>
+        }
+      >
         <PaletteRow
           value={`project:${projectId}:open`}
           keywords={["open", "go to", project.name]}
-          icon="Folder"
+          glyph={GLYPHS.open}
           title="Open project"
           onSelect={() => {
             api.record("project:open");
@@ -59,34 +44,27 @@ export function ProjectPage({ projectId }: { projectId: string }) {
         <PaletteRow
           value={`project:${projectId}:new`}
           keywords={["new thread", "start", project.name]}
-          icon="MessageSquarePlus"
+          glyph={GLYPHS.newThread}
           title="New thread here"
-          subtitle={api.bootstrap?.launcherInstalled ? "Opens Ultra Launcher" : undefined}
+          meta={api.bootstrap?.launcherInstalled ? "Ultra Launcher" : undefined}
           onSelect={() => {
             api.record("project:new-thread");
             api.close();
-            if (api.bootstrap?.launcherInstalled) {
-              window.dispatchEvent(new Event(OPEN_LAUNCHER_EVENT));
-            } else {
-              api.threadActions.openNewThread({ projectId, focusPrompt: true });
-            }
+            if (api.bootstrap?.launcherInstalled) window.dispatchEvent(new Event(OPEN_LAUNCHER_EVENT));
+            else api.threadActions.openNewThread({ projectId, focusPrompt: true });
           }}
         />
       </CommandGroup>
       {threads.length > 0 ? (
         <CommandGroup heading="Threads">
-          {threads.map((thread) => (
+          {threads.map((thread, index) => (
             <ThreadRow
               key={thread.id}
               thread={thread}
               project={project}
               showProject={false}
-              actionId={`thread:${thread.id}:open`}
-              onSelect={() => {
-                api.record("thread:open");
-                api.threadActions.open(thread.id);
-                api.close();
-              }}
+              actionId={actions[index]!.id}
+              onSelect={() => void actions[index]!.run()}
             />
           ))}
         </CommandGroup>

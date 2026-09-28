@@ -11,6 +11,7 @@ A keyboard-first command palette for [bb](https://getbb.app). Press **⌘K** (Ct
 - **Agent & CLI.** New thread (hands off to Ultra Launcher when installed), plugins (enable, disable, reload, logs), skills, and a `$` mode that runs any `bb …` command on your primary host and shows the output inline.
 - **Prefix modes.** `>` commands, `@` threads, `#` projects, `/` skills, `$` bb, `?` shortcuts.
 - **Recents.** Frequently used rows float to the top with a recency decay.
+- **Fast on big workspaces.** `@` mode windows the thread list with TanStack Virtual, so a thousand threads scroll like ten; a root search shows the top 50 thread matches among commands and themes. The palette's data is fetched once and kept fresh by realtime, so every open after the first paints instantly.
 
 ## Install
 
@@ -50,6 +51,9 @@ bb ultra-cmd-k run <bb args…>
 - bb exposes no API to invoke its built-in commands, but its shortcut layer is a plain `window` keydown listener. Rows like "Open Settings" close the palette, wait for it to go inert, and dispatch a synthetic keydown carrying the command's live binding from `system.config()`.
 - Theme selection and thread/plugin mutations go through the plugin server (`bb.sdk.*`). `$` mode runs the fixed `bb` executable through the plugin's host entry: arguments only, no shell, output capped at 64 KB.
 - Light/dark/system is a client-local bb preference; the palette writes it and dispatches the storage event bb listens for.
+- The bootstrap (keybindings, theme catalog, plugins, hosts) is fetched once per window into a small store. The server subscribes to bb's config, UI-preference, plugin, and host change events and publishes one coalesced realtime signal; the always-mounted overlay refetches on that signal and after a reconnect. A rebind in Settings → Keyboard shows on the next open without a timer.
+- `@` mode ranks threads itself (title, project, branch, host) and mounts only the visible rows with TanStack Virtual inside the cmdk list. Because cmdk only walks mounted rows, the shell controls cmdk's highlight there and forwards ↑ ↓ Home End PageUp PageDown to the windowed list, which scrolls the target row in before ↵ or → looks it up.
+- Theme dots are read from each theme's own CSS (`--primary` over `--canvas`, light and dark blocks). bb's built-in palettes live inside its renderer bundle, so their anchors are recorded from it in `lib/theme-swatch.ts`.
 
 ## Development
 
