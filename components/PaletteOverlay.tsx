@@ -4,10 +4,12 @@
 // while closed it is `inert` and marked data-state="closed" so bb's shortcut
 // layer does not treat it as an open modal (which would suppress every
 // app shortcut, including ours).
-import { useEffect, useRef } from "react";
+import { Component, useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { toast } from "sonner";
 import { useBootstrapSync } from "@/components/BootstrapSync";
 import { Palette } from "@/components/Palette";
+import { errorMessage } from "@/components/PaletteContext";
 import { isMacPlatform, isPaletteHotkey } from "@/lib/hotkey";
 import { OPEN_EVENT, paletteStore, usePaletteState } from "@/lib/palette-store";
 import { usePortalScopeProps } from "@/lib/portal-scope";
@@ -17,6 +19,29 @@ const CARD_SHADOW = "shadow-[0_16px_48px_-12px_rgba(0,0,0,0.45)]";
 
 function prefersReducedMotion(): boolean {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+/**
+ * bb hides a crashed overlay for good, and this overlay owns the Cmd+K
+ * listener, so a render error in the palette must stop here: report it and
+ * close. The boundary is keyed per open, so the next Cmd+K starts clean.
+ */
+class PaletteBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+
+  static getDerivedStateFromError(): { failed: boolean } {
+    return { failed: true };
+  }
+
+  componentDidCatch(error: unknown): void {
+    console.error("Ultra Cmd+K crashed", error);
+    toast.error(`Ultra Cmd+K: ${errorMessage(error)}`);
+    paletteStore.close();
+  }
+
+  render(): ReactNode {
+    return this.state.failed ? null : this.props.children;
+  }
 }
 
 export function PaletteOverlay() {
@@ -79,7 +104,11 @@ export function PaletteOverlay() {
         )}
       >
         <div className={cn("overflow-hidden rounded-xl border border-border/70 bg-popover text-popover-foreground", CARD_SHADOW)}>
-          {open ? <Palette key={openNonce} initialQuery={initialQuery} openNonce={openNonce} /> : null}
+          {open ? (
+            <PaletteBoundary key={openNonce}>
+              <Palette initialQuery={initialQuery} openNonce={openNonce} />
+            </PaletteBoundary>
+          ) : null}
         </div>
       </div>
     </div>,

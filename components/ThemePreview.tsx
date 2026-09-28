@@ -12,7 +12,9 @@ import { usePaletteApi } from "@/components/PaletteContext";
 export const THEME_COMMITTED_EVENT = "ultra-cmd-k:theme-committed";
 const PREVIEW_DELAY_MS = 120;
 
-export function themeIdFromValue(value: string): string | null {
+/** `value` is undefined when nothing is highlighted (e.g. a query with no matches). */
+export function themeIdFromValue(value: string | undefined): string | null {
+  if (!value) return null;
   const raw = value.startsWith("recent:") ? value.slice("recent:".length) : value;
   if (!raw.startsWith("theme:") || raw === "theme:pick") return null;
   return raw.slice("theme:".length);
@@ -20,7 +22,7 @@ export function themeIdFromValue(value: string): string | null {
 
 export function ThemePreview() {
   const api = usePaletteApi();
-  const highlighted = useCommandState((state) => state.value);
+  const highlighted = useCommandState((state) => state.value as string | undefined);
   const active = api.bootstrap?.theme.activeId ?? null;
   const original = useRef<string | null>(null);
   const applied = useRef<string | null>(null);
