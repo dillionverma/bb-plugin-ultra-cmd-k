@@ -26,7 +26,6 @@
     "host.ts",
     "components",
     "lib",
-    "hooks",
     "test",
     "vitest.config.ts"
   ]

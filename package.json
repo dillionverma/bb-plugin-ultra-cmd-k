@@ -1,9 +1,9 @@
 {
   "name": "bb-plugin-ultra-cmd-k",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "license": "MIT",
-  "description": "A keyboard-first Cmd+K palette for bb: threads, projects, themes, host commands, plugins, skills, and bb CLI in one place.",
+  "description": "Press Cmd+K to reach threads, projects, themes, bb commands, plugins, skills and the bb CLI from one palette.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/dillionverma/bb-plugin-ultra-cmd-k.git"
@@ -13,8 +13,8 @@
     "url": "https://github.com/dillionverma/bb-plugin-ultra-cmd-k/issues"
   },
   "engines": {
-    "bb": ">=0.43",
-    "bbPluginSdk": ">=0.4.87"
+    "bb": ">=0.46",
+    "bbPluginSdk": ">=0.6.37"
   },
   "scripts": {
     "build": "bb plugin build",
@@ -23,7 +23,7 @@
   },
   "bb": {
     "name": "Ultra Cmd+K",
-    "description": "A keyboard-first Cmd+K palette for bb: threads, projects, themes, host commands, plugins, skills, and bb CLI in one place.",
+    "description": "Press Cmd+K to reach threads, projects, themes, bb commands, plugins, skills and the bb CLI from one palette.",
     "branding": {
       "icon": "Search"
     },
@@ -39,7 +39,6 @@
     "server.ts",
     "host.ts",
     "components",
-    "hooks",
     "lib",
     "skills",
     "tsconfig.json",
