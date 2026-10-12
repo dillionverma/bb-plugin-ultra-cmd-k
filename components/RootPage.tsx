@@ -12,7 +12,6 @@ import { ThreadRow } from "@/components/ThreadRow";
 import { VirtualThreadList } from "@/components/VirtualThreadList";
 import { FaviconDot } from "@/components/pages/FaviconPage";
 import { usePaletteApi, useRegisterActions, type PaletteApi } from "@/components/PaletteContext";
-import { buildThreadActions } from "@/components/pages/ThreadActionsPage";
 import { isListedThread, sortThreads, themeAction, threadOpenAction } from "@/lib/actions";
 import { APPEARANCE_MODES, readAppearanceMode, writeAppearanceMode, type AppearanceMode } from "@/lib/appearance";
 import { GLYPHS } from "@/lib/glyphs";
@@ -145,16 +144,10 @@ function projectAction(api: PaletteApi, project: PaletteApi["threads"]["projects
   };
 }
 
-export function useRootActions(api: PaletteApi): { actions: Action[]; byId: Map<string, Action> } {
+function useRootActions(api: PaletteApi): { actions: Action[]; byId: Map<string, Action> } {
   const appearance = readAppearanceMode();
-  const currentThread = api.bbContext.threadId
-    ? api.threads.threads.find((thread) => thread.id === api.bbContext.threadId)
-    : undefined;
   return useMemo(() => {
     const list: Action[] = [
-      ...(currentThread
-        ? buildThreadActions(api, currentThread, "This thread").filter((action) => !action.id.endsWith(":open"))
-        : []),
       ...appearanceActions(api, appearance),
       ...agentActions(api),
       ...hostActions(api),
@@ -163,7 +156,7 @@ export function useRootActions(api: PaletteApi): { actions: Action[]; byId: Map<
       ...(api.bootstrap?.theme.entries ?? []).map((entry) => themeAction(api, entry)),
     ];
     return { actions: list, byId: new Map(list.map((action) => [action.id, action])) };
-  }, [api, appearance, currentThread]);
+  }, [api, appearance]);
 }
 
 function useRecentIds(): string[] {
@@ -194,7 +187,6 @@ function ActionRows({ actions, api, valuePrefix = "" }: { actions: readonly Acti
           data-action-id={`${valuePrefix}${action.id}`}
           keywords={action.searchText ?? [action.title, action.subtitle ?? "", ...(action.keywords ?? [])]}
           glyph={action.glyph ? GLYPHS[action.glyph] : undefined}
-          icon={action.icon}
           iconNode={leadingNode(api, action)}
           title={action.title}
           meta={action.subtitle}

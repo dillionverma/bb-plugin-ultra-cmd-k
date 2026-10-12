@@ -10,7 +10,7 @@ import type { OrbState } from "thinking-orbs";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { cn } from "@/lib/utils";
 
-export interface AgentOrb {
+interface AgentOrb {
   state: OrbState;
   label: string;
 }

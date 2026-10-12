@@ -10,7 +10,7 @@ import { experimental_defineHostEntry } from "@get-bb/plugin-sdk";
 import { hostContract, type RunResult } from "./lib/contract";
 
 export const OUTPUT_LIMIT = 64 * 1024;
-export const RUN_TIMEOUT_MS = 30_000;
+const RUN_TIMEOUT_MS = 30_000;
 
 export function truncate(text: string): { text: string; truncated: boolean } {
   if (text.length <= OUTPUT_LIMIT) return { text, truncated: false };
@@ -22,7 +22,7 @@ export type Runner = (
   args: string[],
 ) => Promise<{ code: number | null; stdout: string; stderr: string }>;
 
-export const run: Runner = (file, args) =>
+const run: Runner = (file, args) =>
   new Promise((resolve) => {
     execFile(
       file,

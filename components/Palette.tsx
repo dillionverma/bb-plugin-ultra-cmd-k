@@ -27,7 +27,6 @@ import { ShortcutsPage } from "@/components/pages/ShortcutsPage";
 import { SkillsPage } from "@/components/pages/SkillsPage";
 import { ThemesPage } from "@/components/pages/ThemesPage";
 import { ThreadActionsPage } from "@/components/pages/ThreadActionsPage";
-import { threadTitle } from "@/lib/actions";
 import { bootstrapStore, useBootstrap } from "@/lib/bootstrap-store";
 import type { rpcContract } from "@/lib/contract";
 import { scoreMatch } from "@/lib/fuzzy";
@@ -36,6 +35,7 @@ import { isMacPlatform, isModEnter } from "@/lib/hotkey";
 import { afterClose, paletteStore } from "@/lib/palette-store";
 import { parseQuery, type Action, type Page, type PrefixMode } from "@/lib/palette-types";
 import { recentsStore } from "@/lib/recents";
+import { threadTitle } from "@/lib/thread-search";
 
 /** Pages where the input is free text, not a filter. */
 const FREE_TEXT_PAGES = new Set<Page["kind"]>(["send", "cli", "output"]);

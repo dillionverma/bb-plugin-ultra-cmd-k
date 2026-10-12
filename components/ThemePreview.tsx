@@ -9,11 +9,11 @@ import { useEffect, useRef } from "react";
 import { useCommandState } from "cmdk";
 import { usePaletteApi } from "@/components/PaletteContext";
 
-export const THEME_COMMITTED_EVENT = "ultra-cmd-k:theme-committed";
+const THEME_COMMITTED_EVENT = "ultra-cmd-k:theme-committed";
 const PREVIEW_DELAY_MS = 120;
 
 /** `value` is undefined when nothing is highlighted (e.g. a query with no matches). */
-export function themeIdFromValue(value: string | undefined): string | null {
+function themeIdFromValue(value: string | undefined): string | null {
   if (!value) return null;
   const raw = value.startsWith("recent:") ? value.slice("recent:".length) : value;
   if (!raw.startsWith("theme:") || raw === "theme:pick") return null;

@@ -8,7 +8,7 @@ import { Icon } from "@/components/ui/icon";
 import { Kbd } from "@/components/Kbd";
 import { cn } from "@/lib/utils";
 
-export type PaletteRowProps = {
+type PaletteRowProps = {
   /** Unique cmdk value; never shown, never matched (see Palette's filter). */
   value: string;
   /** Text the filter matches against: title plus keywords. */
@@ -31,7 +31,7 @@ export type PaletteRowProps = {
   "data-action-id"?: string;
 };
 
-export function RowGlyph({ glyph, icon, className }: { glyph?: IconSvgElement; icon?: string; className?: string }) {
+function RowGlyph({ glyph, icon, className }: { glyph?: IconSvgElement; icon?: string; className?: string }) {
   if (glyph) return <HugeiconsIcon icon={glyph} strokeWidth={1.75} className={cn("size-4", className)} aria-hidden />;
   if (icon) return <Icon name={icon} className={cn("size-4", className)} aria-hidden />;
   return null;

@@ -13,7 +13,7 @@ import type { Bootstrap } from "./contract";
 /** Re-validate on open after this long without a refresh; realtime normally beats it. */
 export const BOOTSTRAP_STALE_MS = 5 * 60_000;
 
-export type BootstrapFetcher = () => Promise<Bootstrap>;
+type BootstrapFetcher = () => Promise<Bootstrap>;
 type State = { bootstrap: Bootstrap | null; loadedAt: number };
 
 let state: State = { bootstrap: null, loadedAt: 0 };

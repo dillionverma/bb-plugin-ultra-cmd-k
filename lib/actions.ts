@@ -8,8 +8,6 @@ import type { ThemeEntry } from "@/lib/contract";
 import type { Action } from "@/lib/palette-types";
 import { threadTitle } from "@/lib/thread-search";
 
-export { threadTitle };
-
 export function threadOpenAction(api: PaletteApi, thread: PluginSidebarThread): Action {
   return {
     id: `thread:${thread.id}:open`,
@@ -26,7 +24,6 @@ export function threadOpenAction(api: PaletteApi, thread: PluginSidebarThread): 
       api.threadActions.open(thread.id, { split: true });
       api.close();
     },
-    secondaryHint: "Open in split",
     page: { kind: "thread", threadId: thread.id },
   };
 }

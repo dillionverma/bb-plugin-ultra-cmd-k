@@ -2,14 +2,14 @@
 // Score = frequency × recency decay (half-life ~3 days), so a command you use
 // daily stays near the top while a one-off fades within a week.
 
-export const RECENTS_KEY = "bb.ultra-cmd-k.recents";
+const RECENTS_KEY = "bb.ultra-cmd-k.recents";
 export const RECENTS_LIMIT = 40;
 const HALF_LIFE_MS = 3 * 24 * 60 * 60 * 1000;
 
 export type RecentEntry = { id: string; count: number; lastUsedAt: number };
 export type RecentsMap = Record<string, RecentEntry>;
 
-export function score(entry: RecentEntry, now: number): number {
+function score(entry: RecentEntry, now: number): number {
   const age = Math.max(0, now - entry.lastUsedAt);
   return entry.count * Math.pow(0.5, age / HALF_LIFE_MS);
 }

@@ -128,7 +128,3 @@ export const GLYPHS = {
 } as const satisfies Record<string, IconSvgElement>;
 
 export type GlyphName = keyof typeof GLYPHS;
-
-export function glyph(name: GlyphName): IconSvgElement {
-  return GLYPHS[name];
-}

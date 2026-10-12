@@ -4,7 +4,7 @@
 // so after writing we dispatch a synthetic one, and toggle the `dark` class as
 // a fallback so the switch is visible even if the event is ignored.
 
-export const MODE_KEY = "bb.theme";
+const MODE_KEY = "bb.theme";
 export const APPEARANCE_MODES = ["light", "dark", "system"] as const;
 export type AppearanceMode = (typeof APPEARANCE_MODES)[number];
 
@@ -17,7 +17,7 @@ export function readAppearanceMode(storage: Pick<Storage, "getItem"> = localStor
   }
 }
 
-export function resolveAppearance(mode: AppearanceMode): "light" | "dark" {
+function resolveAppearance(mode: AppearanceMode): "light" | "dark" {
   if (mode !== "system") return mode;
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }

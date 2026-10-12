@@ -6,7 +6,7 @@
 const TYPO_MIN_LENGTH = 5;
 
 /** Levenshtein distance capped at 2 (early exit keeps it cheap per row). */
-export function editDistance(a: string, b: string, cap = 2): number {
+function editDistance(a: string, b: string, cap = 2): number {
   if (Math.abs(a.length - b.length) > cap) return cap + 1;
   let previous = Array.from({ length: b.length + 1 }, (_, i) => i);
   for (let i = 1; i <= a.length; i += 1) {

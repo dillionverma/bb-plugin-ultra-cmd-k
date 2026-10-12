@@ -13,9 +13,7 @@ import { ThreadOrb, agentOrb } from "@/components/ThreadOrb";
 import { GLYPHS } from "@/lib/glyphs";
 import { threadSearchText, threadTitle } from "@/lib/thread-search";
 
-export { threadTitle };
-
-export function relativeTime(timestamp: number, now = Date.now()): string {
+function relativeTime(timestamp: number, now = Date.now()): string {
   const seconds = Math.max(0, Math.round((now - timestamp) / 1000));
   if (seconds < 60) return "now";
   const minutes = Math.round(seconds / 60);
@@ -29,7 +27,7 @@ export function relativeTime(timestamp: number, now = Date.now()): string {
   return `${Math.round(months / 12)}y`;
 }
 
-export function threadTone(thread: PluginSidebarThread): StatusTone {
+function threadTone(thread: PluginSidebarThread): StatusTone {
   if (thread.hasPendingInteraction || thread.indicator === "waiting-for-input") return "needs-you";
   if (thread.indicator === "unread-error") return "problem";
   if (thread.indicator === "runtime" || thread.indicator === "working-draft") return "working";

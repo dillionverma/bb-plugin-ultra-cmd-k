@@ -33,10 +33,6 @@ const BY_TONE: Record<StatusTone, Glyph> = {
   problem: { color: LINEAR.blocked, fill: 1, mark: "cross" },
 };
 
-export const TONE_COLOR: Record<StatusTone, string> = Object.fromEntries(
-  Object.entries(BY_TONE).map(([tone, glyph]) => [tone, glyph.color]),
-) as Record<StatusTone, string>;
-
 const RADIUS = 5;
 const INNER = 2.5;
 const CIRCUMFERENCE = 2 * Math.PI * INNER;

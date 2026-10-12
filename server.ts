@@ -44,7 +44,7 @@ const DISPLACED_KEY = "hotkey.displacedOverride";
 
 type Override = { command: typeof HOST_COMMAND; shortcut: Shortcut };
 
-export function isModK(shortcut: Shortcut): boolean {
+function isModK(shortcut: Shortcut): boolean {
   return (
     shortcut !== null &&
     shortcut.key.toLowerCase() === "k" &&
@@ -82,7 +82,7 @@ const BUILTIN_THEME_INFO: ReadonlyArray<Pick<ThemeEntry, "id" | "name" | "descri
   { id: "gruvbox", name: "Gruvbox", description: "Warm retro earth tones" },
   { id: "catppuccin", name: "Catppuccin", description: "Soothing pastel" },
 ];
-export const BUILTIN_THEMES: readonly ThemeEntry[] = BUILTIN_THEME_INFO.map((entry) => ({
+const BUILTIN_THEMES: readonly ThemeEntry[] = BUILTIN_THEME_INFO.map((entry) => ({
   ...entry,
   kind: "builtin",
   swatch: BUILTIN_SWATCHES[entry.id] ?? null,
@@ -306,23 +306,8 @@ export default async function plugin(bb: BbPluginApi) {
         case "compact":
           await bb.sdk.threads.compact({ threadId });
           return { ok: true };
-        case "archive":
-          await bb.sdk.threads.archive({ threadId });
-          return { ok: true };
         case "unarchive":
           await bb.sdk.threads.unarchive({ threadId });
-          return { ok: true };
-        case "markRead":
-          await bb.sdk.threads.markRead({ threadId });
-          return { ok: true };
-        case "markUnread":
-          await bb.sdk.threads.markUnread({ threadId });
-          return { ok: true };
-        case "pin":
-          await bb.sdk.threads.pin({ threadId });
-          return { ok: true };
-        case "unpin":
-          await bb.sdk.threads.unpin({ threadId });
           return { ok: true };
       }
     },

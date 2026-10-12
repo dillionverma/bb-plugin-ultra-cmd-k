@@ -20,7 +20,7 @@ const OVERSCAN = 12;
 /** The list's max height before the first measure, so the first paint fills it. */
 const INITIAL_VIEWPORT_PX = 440;
 
-export function threadActionId(thread: Pick<PluginSidebarThread, "id">): string {
+function threadActionId(thread: Pick<PluginSidebarThread, "id">): string {
   return `thread:${thread.id}:open`;
 }
 
@@ -29,14 +29,12 @@ export function VirtualThreadList({
   projects,
   byId,
   query,
-  heading = "Threads",
 }: {
   threads: readonly PluginSidebarThread[];
   projects: ReadonlyMap<string, PluginSidebarProject>;
   byId: ReadonlyMap<string, Action>;
   /** The search text these rows were ranked by; a change resets to the top. */
   query: string;
-  heading?: string;
 }) {
   const api = usePaletteApi();
   const [list, setList] = useState<HTMLDivElement | null>(null);
@@ -119,7 +117,7 @@ export function VirtualThreadList({
   const items = virtualizer.getVirtualItems();
 
   return (
-    <CommandGroup heading={heading}>
+    <CommandGroup heading="Threads">
       {threads.length === 0 ? (
         <div className="py-8 text-center text-sm text-muted-foreground">No matches.</div>
       ) : (

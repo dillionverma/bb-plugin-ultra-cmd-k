@@ -11,7 +11,7 @@ export function isMacPlatform(nav: Pick<Navigator, "userAgent"> = navigator): bo
 }
 
 /** Cmd on macOS, Ctrl elsewhere — and not both. */
-export function hasMod(event: KeyLike, isMac: boolean): boolean {
+function hasMod(event: KeyLike, isMac: boolean): boolean {
   return isMac ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
 }
 

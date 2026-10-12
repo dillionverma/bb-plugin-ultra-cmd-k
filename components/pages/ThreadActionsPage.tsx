@@ -6,10 +6,11 @@ import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import { CommandGroup } from "@/components/ui/command";
 import { PaletteRow } from "@/components/PaletteRow";
 import { usePaletteApi, useRegisterActions, type PaletteApi } from "@/components/PaletteContext";
-import { ThreadGlyph, threadTitle } from "@/components/ThreadRow";
+import { ThreadGlyph } from "@/components/ThreadRow";
 import { GLYPHS } from "@/lib/glyphs";
 import type { Action } from "@/lib/palette-types";
 import type { ThreadAction } from "@/lib/contract";
+import { threadTitle } from "@/lib/thread-search";
 
 function serverAction(api: PaletteApi, threadId: string, action: ThreadAction, done: string) {
   return async () => {
@@ -26,7 +27,7 @@ function serverAction(api: PaletteApi, threadId: string, action: ThreadAction, d
 }
 
 /** Rows for a thread; `group` names the cmdk group they render under. */
-export function buildThreadActions(api: PaletteApi, thread: PluginSidebarThread, group: string): Action[] {
+function buildThreadActions(api: PaletteApi, thread: PluginSidebarThread, group: string): Action[] {
   const id = thread.id;
   const busy = thread.indicator === "runtime" || thread.activity.backgroundAgents + thread.activity.workflows > 0;
   const prefix = `thread:${id}:`;
@@ -47,7 +48,6 @@ export function buildThreadActions(api: PaletteApi, thread: PluginSidebarThread,
         api.record("thread:open-split");
         api.close();
       },
-      secondaryHint: "Open in split",
     },
     {
       id: `${prefix}split`,

@@ -4,8 +4,9 @@ import { toast } from "sonner";
 import { CommandGroup } from "@/components/ui/command";
 import { PaletteRow } from "@/components/PaletteRow";
 import { usePaletteApi } from "@/components/PaletteContext";
-import { ThreadGlyph, threadTitle } from "@/components/ThreadRow";
+import { ThreadGlyph } from "@/components/ThreadRow";
 import { GLYPHS } from "@/lib/glyphs";
+import { threadTitle } from "@/lib/thread-search";
 
 export function SendMessagePage({ threadId, text }: { threadId: string; text: string }) {
   const api = usePaletteApi();

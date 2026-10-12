@@ -12,9 +12,9 @@
 import type { Keybinding, Shortcut } from "./contract";
 import type { GlyphName } from "./glyphs";
 
-export type HostCommandGroup = "Threads" | "Layout" | "Model" | "Composer" | "App";
+type HostCommandGroup = "Threads" | "Layout" | "Model" | "Composer" | "App";
 
-export type HostCommandSpec = {
+type HostCommandSpec = {
   id: string;
   title: string;
   group: HostCommandGroup;

@@ -50,7 +50,6 @@ function buildSkillActions(api: PaletteApi, skills: readonly SkillEntry[], threa
                 api.reportError(error);
               }
             },
-            secondaryHint: "Send to this thread",
           }
         : {}),
     };

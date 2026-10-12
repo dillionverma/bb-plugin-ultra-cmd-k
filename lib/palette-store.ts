@@ -5,7 +5,7 @@ import { useSyncExternalStore } from "react";
 
 export const OPEN_EVENT = "ultra-cmd-k:open";
 
-export type PaletteState = {
+type PaletteState = {
   open: boolean;
   /** Bumps on every open so the input can refocus and reset. */
   openNonce: number;
@@ -37,9 +37,9 @@ export const paletteStore = {
     state = { ...state, open: false };
     emit();
   },
-  toggle(initialQuery = ""): void {
+  toggle(): void {
     if (state.open) paletteStore.close();
-    else paletteStore.open(initialQuery);
+    else paletteStore.open();
   },
 };
 

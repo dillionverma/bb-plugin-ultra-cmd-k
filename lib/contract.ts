@@ -55,12 +55,11 @@ export const themeEntrySchema = z.object({
 });
 export type ThemeEntry = z.infer<typeof themeEntrySchema>;
 
-export const themeStateSchema = z.object({
+const themeStateSchema = z.object({
   activeId: z.string(),
   faviconColor: faviconColorSchema,
   entries: z.array(themeEntrySchema),
 });
-export type ThemeState = z.infer<typeof themeStateSchema>;
 
 export const hotkeyStatusSchema = z.object({
   state: z.enum(["free", "taken"]),
@@ -85,12 +84,11 @@ export const skillEntrySchema = z.object({
 });
 export type SkillEntry = z.infer<typeof skillEntrySchema>;
 
-export const hostEntrySchema = z.object({
+const hostEntrySchema = z.object({
   id: z.string(),
   name: z.string(),
   status: z.enum(["connected", "disconnected"]),
 });
-export type HostEntry = z.infer<typeof hostEntrySchema>;
 
 export const bootstrapSchema = z.object({
   hotkey: hotkeyStatusSchema,
@@ -116,17 +114,7 @@ export function isBootstrapSignal(payload: unknown): payload is BootstrapSignal 
   return Array.isArray(reasons) && reasons.every((reason) => typeof reason === "string") && typeof at === "number";
 }
 
-export const threadActionSchema = z.enum([
-  "stop",
-  "fork",
-  "compact",
-  "archive",
-  "unarchive",
-  "markRead",
-  "markUnread",
-  "pin",
-  "unpin",
-]);
+const threadActionSchema = z.enum(["stop", "fork", "compact", "unarchive"]);
 export type ThreadAction = z.infer<typeof threadActionSchema>;
 
 export const runResultSchema = z.object({
@@ -139,7 +127,7 @@ export const runResultSchema = z.object({
 export type RunResult = z.infer<typeof runResultSchema>;
 
 export const MAX_BB_ARGS = 64;
-export const MAX_ARG_LENGTH = 4096;
+const MAX_ARG_LENGTH = 4096;
 /** Arguments for the fixed `bb` executable: no shell, no newlines, bounded. */
 export const bbArgsSchema = z
   .array(z.string().max(MAX_ARG_LENGTH).refine((arg) => !/[\r\n\0]/.test(arg), "Arguments cannot contain newlines."))

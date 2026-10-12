@@ -34,34 +34,29 @@ export function parseQuery(raw: string): { mode: PrefixMode; text: string } {
   return { mode: "root", text: raw };
 }
 
-export type ActionRun = () => void | Promise<void>;
+type ActionRun = () => void | Promise<void>;
 
 /** One selectable row. `secondary` answers Ctrl/Cmd+Enter; `page` answers → / Tab. */
 export type Action = {
   id: string;
   title: string;
   subtitle?: string;
-  /** Hugeicons glyph (see lib/glyphs.ts); falls back to `icon`. */
   glyph?: GlyphName;
-  icon?: string;
   group: string;
   keywords?: string[];
   /** Overrides the default "title + subtitle + keywords" search text. */
   searchText?: string[];
   shortcut?: string[];
   disabled?: boolean;
-  disabledReason?: string;
   /** Shows a check: the option currently in effect. */
   active?: boolean;
   run: ActionRun;
   secondary?: ActionRun;
-  secondaryHint?: string;
   page?: Page;
 };
 
 export const GROUP_ORDER = [
   "Recent",
-  "Current thread",
   "Threads",
   "Projects",
   "Appearance",
