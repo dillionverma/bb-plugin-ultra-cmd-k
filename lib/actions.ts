@@ -4,15 +4,13 @@ import { toast } from "sonner";
 import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
 import type { PaletteApi } from "@/components/PaletteContext";
 import { commitTheme } from "@/components/ThemePreview";
-import type { ThemeEntry } from "@/lib/contract";
+import { ULTRA_LAUNCHER, type ThemeEntry } from "@/lib/contract";
 import type { Action } from "@/lib/palette-types";
 import { threadTitle } from "@/lib/thread-search";
 
-const OPEN_LAUNCHER_EVENT = "quick-thread:open";
-
 export function startNewThread(api: PaletteApi, projectId: string | undefined): void {
   api.close();
-  if (api.bootstrap?.launcherInstalled) window.dispatchEvent(new Event(OPEN_LAUNCHER_EVENT));
+  if (api.bootstrap?.launcherRunning) window.dispatchEvent(new Event(ULTRA_LAUNCHER.openEvent));
   else api.nav.toCompose({ projectId, focusPrompt: true });
 }
 

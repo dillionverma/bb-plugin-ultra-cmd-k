@@ -7,7 +7,7 @@ function fakeBootstrap(tag: string): Bootstrap {
     hotkey: { state: "free", reason: "claimed", description: tag },
     keybindings: [],
     theme: { activeId: "default", faviconColor: "default", entries: [] },
-    launcherInstalled: false,
+    launcherRunning: false,
     plugins: [],
     hosts: [],
     primaryHostId: null,

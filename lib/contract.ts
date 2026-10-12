@@ -90,11 +90,13 @@ const hostEntrySchema = z.object({
   status: z.enum(["connected", "disconnected"]),
 });
 
+export const ULTRA_LAUNCHER = { pluginId: "ultra-launcher", openEvent: "ultra-launcher:open" } as const;
+
 export const bootstrapSchema = z.object({
   hotkey: hotkeyStatusSchema,
   keybindings: z.array(keybindingSchema),
   theme: themeStateSchema,
-  launcherInstalled: z.boolean(),
+  launcherRunning: z.boolean(),
   plugins: z.array(pluginEntrySchema),
   hosts: z.array(hostEntrySchema),
   primaryHostId: z.string().nullable(),

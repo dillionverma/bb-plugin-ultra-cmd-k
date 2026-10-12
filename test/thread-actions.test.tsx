@@ -7,8 +7,10 @@ import type {
   PluginThreadActionTarget,
 } from "@get-bb/plugin-sdk/app";
 import { loadPluginApp, renderSlot } from "@get-bb/plugin-sdk/testing/app";
+import { bootstrapStore } from "@/lib/bootstrap-store";
 import type { Bootstrap } from "@/lib/contract";
 import { paletteStore } from "@/lib/palette-store";
+import { recentsStore } from "@/lib/recents";
 
 const project: PluginSidebarProject = {
   id: "pr_1",
@@ -58,7 +60,7 @@ const bootstrap: Bootstrap = {
   hotkey: { state: "free", reason: "claimed", description: "" },
   keybindings: [],
   theme: { activeId: "default", faviconColor: "default", entries: [] },
-  launcherInstalled: false,
+  launcherRunning: false,
   plugins: [],
   hosts: [],
   primaryHostId: null,
@@ -82,9 +84,11 @@ beforeAll(() => {
 afterEach(() => {
   act(() => paletteStore.close());
   cleanup();
+  bootstrapStore.reset();
+  recentsStore.clear();
 });
 
-async function openThreadActions() {
+async function openPalette(overrides: Partial<Bootstrap> = {}) {
   const app = await loadPluginApp(() => import("@/app"));
   const overlay = app.appOverlays.find((registration) => registration.id === "palette");
   if (!overlay) throw new Error("palette overlay is not registered");
@@ -98,13 +102,19 @@ async function openThreadActions() {
       return [coreAction("bb--core/pin", async () => {}), coreAction("bb--core/archive", archive), coreAction("bb--core/delete", remove)];
     },
     sdk: { threads: { pin: async () => undefined as never, markRead: async () => undefined as never } },
-    rpc: { get_bootstrap: () => bootstrap },
+    rpc: { get_bootstrap: () => ({ ...bootstrap, ...overrides }) },
+    context: { projectId: "pr_1" },
   });
   await act(async () => paletteStore.open());
   await screen.findByText("Fix login redirect");
+  return { slot, archive, remove, targets };
+}
+
+async function openThreadActions() {
+  const opened = await openPalette();
   fireEvent.keyDown(screen.getByRole("combobox"), { key: "Tab" });
   await screen.findByText("Open in split");
-  return { slot, archive, remove, targets };
+  return opened;
 }
 
 describe("thread actions page", () => {
@@ -144,5 +154,24 @@ describe("thread actions page", () => {
     fireEvent.click(screen.getByText("Delete"));
     expect(second.remove).toHaveBeenCalledOnce();
     expect(second.archive).not.toHaveBeenCalled();
+  });
+});
+
+describe("new thread", () => {
+  it("opens bb's new-thread screen in the current project when Ultra Launcher is not running", async () => {
+    const { slot } = await openPalette();
+    fireEvent.click(screen.getByText("New thread"));
+    expect(slot.inspection.navigateCalls).toEqual([{ method: "toCompose", options: { projectId: "pr_1", focusPrompt: true } }]);
+  });
+
+  it("hands off to Ultra Launcher when it is running", async () => {
+    const launcherOpened = vi.fn();
+    window.addEventListener("ultra-launcher:open", launcherOpened);
+    const { slot } = await openPalette({ launcherRunning: true });
+    await screen.findByText("Ultra Launcher");
+    fireEvent.click(screen.getByText("New thread"));
+    window.removeEventListener("ultra-launcher:open", launcherOpened);
+    expect(launcherOpened).toHaveBeenCalledOnce();
+    expect(slot.inspection.navigateCalls).toEqual([]);
   });
 });

@@ -31,7 +31,7 @@ const MODE_LABEL: Record<AppearanceMode, string> = { light: "Light mode", dark: 
 const MODE_GLYPH: Record<AppearanceMode, Action["glyph"]> = { light: "light", dark: "dark", system: "system" };
 
 function newThread(api: PaletteApi): Action {
-  const launcher = api.bootstrap?.launcherInstalled === true;
+  const launcher = api.bootstrap?.launcherRunning === true;
   return {
     id: "new-thread",
     title: "New thread",

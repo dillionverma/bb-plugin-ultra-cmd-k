@@ -45,7 +45,7 @@ export function ProjectPage({ projectId }: { projectId: string }) {
           keywords={["new thread", "start", project.name]}
           glyph={GLYPHS.newThread}
           title="New thread here"
-          meta={api.bootstrap?.launcherInstalled ? "Ultra Launcher" : undefined}
+          meta={api.bootstrap?.launcherRunning ? "Ultra Launcher" : undefined}
           onSelect={() => {
             api.record("project:new-thread");
             startNewThread(api, projectId);

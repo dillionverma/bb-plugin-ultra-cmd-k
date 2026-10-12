@@ -15,6 +15,7 @@
 import { type BbPluginApi } from "@get-bb/plugin-sdk";
 import {
   BOOTSTRAP_CHANNEL,
+  ULTRA_LAUNCHER,
   hostContract,
   rpcContract,
   type Bootstrap,
@@ -226,7 +227,7 @@ export default async function plugin(bb: BbPluginApi) {
       bb.sdk.plugins.list(),
       bb.sdk.hosts.list().catch(() => []),
     ]);
-    const launcher = plugins.plugins.find((entry) => entry.id === "quick-thread");
+    const launcher = plugins.plugins.find((entry) => entry.id === ULTRA_LAUNCHER.pluginId);
     return {
       hotkey,
       keybindings: config.keybindings.map((binding) => ({
@@ -236,7 +237,7 @@ export default async function plugin(bb: BbPluginApi) {
         when: { all: [...binding.when.all], none: [...binding.when.none] },
       })),
       theme,
-      launcherInstalled: launcher !== undefined && launcher.enabled && launcher.status === "running",
+      launcherRunning: launcher !== undefined && launcher.enabled && launcher.status === "running",
       plugins: plugins.plugins
         .filter((entry) => entry.id !== bb.pluginId)
         .map((entry) => ({ id: entry.id, name: entry.name ?? entry.id, enabled: entry.enabled, status: entry.status })),
