@@ -12,6 +12,9 @@ import type { Bootstrap } from "@/lib/contract";
 import { paletteStore } from "@/lib/palette-store";
 import { recentsStore } from "@/lib/recents";
 
+const toast = vi.hoisted(() => Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }));
+vi.mock("sonner", () => ({ toast }));
+
 const project: PluginSidebarProject = {
   id: "pr_1",
   name: "Website",
@@ -86,9 +89,10 @@ afterEach(() => {
   cleanup();
   bootstrapStore.reset();
   recentsStore.clear();
+  vi.clearAllMocks();
 });
 
-async function openPalette(overrides: Partial<Bootstrap> = {}) {
+async function openPalette(overrides: Partial<Bootstrap> = {}, pin: () => Promise<never> = async () => undefined as never) {
   const app = await loadPluginApp(() => import("@/app"));
   const overlay = app.appOverlays.find((registration) => registration.id === "palette");
   if (!overlay) throw new Error("palette overlay is not registered");
@@ -101,7 +105,7 @@ async function openPalette(overrides: Partial<Bootstrap> = {}) {
       targets.push(target);
       return [coreAction("bb--core/pin", async () => {}), coreAction("bb--core/archive", archive), coreAction("bb--core/delete", remove)];
     },
-    sdk: { threads: { pin: async () => undefined as never, markRead: async () => undefined as never } },
+    sdk: { threads: { pin, markRead: async () => undefined as never } },
     rpc: { get_bootstrap: () => ({ ...bootstrap, ...overrides }) },
     context: { projectId: "pr_1" },
   });
@@ -110,8 +114,8 @@ async function openPalette(overrides: Partial<Bootstrap> = {}) {
   return { slot, archive, remove, targets };
 }
 
-async function openThreadActions() {
-  const opened = await openPalette();
+async function openThreadActions(pin?: () => Promise<never>) {
+  const opened = await openPalette({}, pin);
   fireEvent.keyDown(screen.getByRole("combobox"), { key: "Tab" });
   await screen.findByText("Open in split");
   return opened;
@@ -122,6 +126,15 @@ describe("thread actions page", () => {
     const { slot } = await openThreadActions();
     fireEvent.click(screen.getByText("Pin"));
     await vi.waitFor(() => expect(slot.inspection.sdkCalls).toEqual([{ method: "threads.pin", args: [{ threadId: "th_1" }] }]));
+  });
+
+  it("reports a failed pin instead of claiming success", async () => {
+    await openThreadActions(async () => {
+      throw new Error("offline");
+    });
+    fireEvent.click(screen.getByText("Pin"));
+    await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith("offline"));
+    expect(toast.success).not.toHaveBeenCalled();
   });
 
   it("marks an unread thread read through the bb SDK", async () => {
@@ -147,6 +160,7 @@ describe("thread actions page", () => {
     expect(first.targets.at(-1)).toMatchObject({ id: "th_1", archivedAt: null });
     fireEvent.click(screen.getByText("Archive"));
     expect(first.archive).toHaveBeenCalledOnce();
+    expect(toast.success).not.toHaveBeenCalled();
     expect(first.remove).not.toHaveBeenCalled();
     cleanup();
 

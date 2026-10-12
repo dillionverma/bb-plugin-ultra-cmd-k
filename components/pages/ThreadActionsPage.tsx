@@ -111,10 +111,14 @@ function buildThreadActions(
       glyph: thread.isPinned ? "unpin" : "pin",
       group,
       run: async () => {
-        await (thread.isPinned ? sdk.threads.unpin({ threadId: id }) : sdk.threads.pin({ threadId: id }));
-        api.record("thread:pin");
-        toast.success(thread.isPinned ? "Unpinned" : "Pinned");
-        api.close();
+        try {
+          await (thread.isPinned ? sdk.threads.unpin({ threadId: id }) : sdk.threads.pin({ threadId: id }));
+          api.record("thread:pin");
+          toast.success(thread.isPinned ? "Unpinned" : "Pinned");
+          api.close();
+        } catch (error) {
+          api.reportError(error);
+        }
       },
     },
     {
@@ -123,9 +127,13 @@ function buildThreadActions(
       glyph: thread.isUnread ? "markRead" : "markUnread",
       group,
       run: async () => {
-        await (thread.isUnread ? sdk.threads.markRead({ threadId: id }) : sdk.threads.markUnread({ threadId: id }));
-        api.record("thread:read");
-        api.close();
+        try {
+          await (thread.isUnread ? sdk.threads.markRead({ threadId: id }) : sdk.threads.markUnread({ threadId: id }));
+          api.record("thread:read");
+          api.close();
+        } catch (error) {
+          api.reportError(error);
+        }
       },
     },
     {
@@ -168,7 +176,6 @@ function buildThreadActions(
         : () => {
             void archive?.run();
             api.record("thread:archive");
-            toast.success("Archived");
             api.close();
           },
     },
