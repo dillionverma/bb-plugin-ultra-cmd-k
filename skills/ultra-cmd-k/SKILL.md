@@ -31,3 +31,4 @@ The `bb ultra-cmd-k` command exposes the parts an agent can act on.
 - Prefer `bb theme set <id>` and `bb settings keyboard set …` when the user asks for the underlying bb behaviour; use this command when they ask about Ultra Cmd+K itself.
 - `run` accepts arguments only; the executable is always `bb`, there is no shell, and output is truncated at 64 KB.
 - Do not edit the keybinding override for `palette.open` by hand while the plugin is enabled; use `claim` / `release` so the plugin's record stays consistent.
+- Run `release` before disabling or uninstalling the plugin. Disabling it alone leaves Cmd+K with no action, because bb's palette stays on Mod+Shift+P.
