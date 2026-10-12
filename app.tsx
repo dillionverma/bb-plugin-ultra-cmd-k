@@ -14,14 +14,14 @@ export default definePluginApp((app) => {
 
   // Reachable from bb's palette even if Cmd+K could not be claimed. The row
   // cannot reach React state directly, so it signals the overlay.
-  app.slots.commandPaletteAction({
+  app.commands.register({
     id: "open",
     title: "Ultra Cmd+K: open palette",
     run: () => {
       window.dispatchEvent(new Event(OPEN_EVENT));
     },
   });
-  app.slots.commandPaletteAction({
+  app.commands.register({
     id: "themes",
     title: "Ultra Cmd+K: change theme",
     run: () => paletteStore.open("theme"),
