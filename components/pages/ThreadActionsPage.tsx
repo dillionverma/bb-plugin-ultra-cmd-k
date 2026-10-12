@@ -173,6 +173,7 @@ function buildThreadActions(
             title: "Archive",
             glyph: "archive",
             group,
+            disabled: archive.disabled,
             run: () => {
               void archive.run();
               api.record("thread:archive");
@@ -205,6 +206,7 @@ function buildThreadActions(
             subtitle: "asks first",
             glyph: "trash",
             group,
+            disabled: remove.disabled,
             run: () => {
               void remove.run();
               api.close();
@@ -255,6 +257,7 @@ function ThreadActions({ thread }: { thread: PluginSidebarThread }) {
           title={action.title}
           meta={action.subtitle}
           hasPage={action.page !== undefined}
+          disabled={action.disabled}
           onSelect={() => void action.run()}
         />
       ))}

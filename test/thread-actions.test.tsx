@@ -69,9 +69,16 @@ const bootstrap: Bootstrap = {
   primaryHostId: null,
 };
 
-function coreAction(key: string, run: () => Promise<void>): PluginThreadActionEntry {
-  return { key, pluginId: "bb--core", group: "lifecycle", action: { label: key, icon: "Zap", run } };
+function coreAction(key: string, run: () => Promise<void>, disabled: boolean): PluginThreadActionEntry {
+  return { key, pluginId: "bb--core", group: "lifecycle", action: { label: key, icon: "Zap", run, disabled } };
 }
+
+type PaletteSetup = {
+  bootstrap?: Partial<Bootstrap>;
+  pin?: () => Promise<never>;
+  offered?: readonly string[];
+  disabled?: readonly string[];
+};
 
 beforeAll(() => {
   globalThis.ResizeObserver = class {
@@ -92,11 +99,12 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-async function openPalette(
-  overrides: Partial<Bootstrap> = {},
-  pin: () => Promise<never> = async () => undefined as never,
-  offered: readonly string[] = ["bb--core/pin", "bb--core/archive", "bb--core/delete"],
-) {
+async function openPalette({
+  bootstrap: overrides = {},
+  pin = async () => undefined as never,
+  offered = ["bb--core/pin", "bb--core/archive", "bb--core/delete"],
+  disabled = [],
+}: PaletteSetup = {}) {
   const app = await loadPluginApp(() => import("@/app"));
   const overlay = app.appOverlays.find((registration) => registration.id === "palette");
   if (!overlay) throw new Error("palette overlay is not registered");
@@ -107,9 +115,10 @@ async function openPalette(
     sidebarThreads: { status: "ready", threads: [thread], projects: [project] },
     threadActions: (target) => {
       targets.push(target);
-      return [coreAction("bb--core/pin", async () => {}), coreAction("bb--core/archive", archive), coreAction("bb--core/delete", remove)].filter(
-        (entry) => offered.includes(entry.key),
-      );
+      const runs = { "bb--core/pin": async () => {}, "bb--core/archive": archive, "bb--core/delete": remove };
+      return Object.entries(runs)
+        .filter(([key]) => offered.includes(key))
+        .map(([key, run]) => coreAction(key, run, disabled.includes(key)));
     },
     sdk: { threads: { pin, markRead: async () => undefined as never } },
     rpc: { get_bootstrap: () => ({ ...bootstrap, ...overrides }) },
@@ -120,8 +129,8 @@ async function openPalette(
   return { slot, archive, remove, targets };
 }
 
-async function openThreadActions(pin?: () => Promise<never>, offered?: readonly string[]) {
-  const opened = await openPalette({}, pin, offered);
+async function openThreadActions(setup?: PaletteSetup) {
+  const opened = await openPalette(setup);
   fireEvent.keyDown(screen.getByRole("combobox"), { key: "Tab" });
   await screen.findByText("Open in split");
   return opened;
@@ -135,8 +144,10 @@ describe("thread actions page", () => {
   });
 
   it("reports a failed pin instead of claiming success", async () => {
-    await openThreadActions(async () => {
-      throw new Error("offline");
+    await openThreadActions({
+      pin: async () => {
+        throw new Error("offline");
+      },
     });
     fireEvent.click(screen.getByText("Pin"));
     await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith("offline"));
@@ -177,9 +188,19 @@ describe("thread actions page", () => {
   });
 
   it("leaves out Archive and Delete when bb does not offer them for the thread", async () => {
-    await openThreadActions(undefined, ["bb--core/pin"]);
+    await openThreadActions({ offered: ["bb--core/pin"] });
     expect(screen.queryByText("Archive")).toBeNull();
     expect(screen.queryByText("Delete")).toBeNull();
+  });
+
+  it("shows Archive and Delete disabled when bb disables them", async () => {
+    const { archive, remove } = await openThreadActions({ disabled: ["bb--core/archive", "bb--core/delete"] });
+    for (const title of ["Archive", "Delete"]) {
+      expect(screen.getByText(title).closest("[cmdk-item]")?.getAttribute("data-disabled")).toBe("true");
+      fireEvent.click(screen.getByText(title));
+    }
+    expect(archive).not.toHaveBeenCalled();
+    expect(remove).not.toHaveBeenCalled();
   });
 });
 
@@ -193,11 +214,14 @@ describe("new thread", () => {
   it("hands off to Ultra Launcher when it is running", async () => {
     const launcherOpened = vi.fn();
     window.addEventListener("ultra-launcher:open", launcherOpened);
-    const { slot } = await openPalette({ launcherRunning: true });
-    await screen.findByText("Ultra Launcher");
-    fireEvent.click(screen.getByText("New thread"));
-    window.removeEventListener("ultra-launcher:open", launcherOpened);
-    expect(launcherOpened).toHaveBeenCalledOnce();
-    expect(slot.inspection.navigateCalls).toEqual([]);
+    try {
+      const { slot } = await openPalette({ bootstrap: { launcherRunning: true } });
+      await screen.findByText("Ultra Launcher");
+      fireEvent.click(screen.getByText("New thread"));
+      expect(launcherOpened).toHaveBeenCalledOnce();
+      expect(slot.inspection.navigateCalls).toEqual([]);
+    } finally {
+      window.removeEventListener("ultra-launcher:open", launcherOpened);
+    }
   });
 });
