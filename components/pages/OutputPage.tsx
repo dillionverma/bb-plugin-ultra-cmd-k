@@ -1,3 +1,4 @@
+import { experimental_copyToClipboard } from "@get-bb/plugin-sdk/app";
 import { toast } from "sonner";
 import { CommandGroup } from "@/components/ui/command";
 import { PaletteRow } from "@/components/PaletteRow";
@@ -30,8 +31,8 @@ export function OutputPage({ title, result }: { title: string; result: RunResult
           glyph={GLYPHS.copy}
           title="Copy output"
           onSelect={async () => {
-            await navigator.clipboard.writeText(body);
-            toast.success("Copied");
+            if (await experimental_copyToClipboard({ text: body })) toast.success("Copied");
+            else toast.error("Could not copy the output");
           }}
         />
         <PaletteRow

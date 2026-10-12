@@ -128,6 +128,12 @@ describe("thread actions page", () => {
     expect(slot.inspection.navigateCalls).toEqual([{ method: "toThread", threadId: "th_1", options: { split: true } }]);
   });
 
+  it("copies the thread id through bb's clipboard", async () => {
+    const { slot } = await openThreadActions();
+    fireEvent.click(screen.getByText("Copy thread id"));
+    await vi.waitFor(() => expect(slot.inspection.experimental_clipboardWrites).toEqual([{ text: "th_1" }]));
+  });
+
   it("archives and deletes through bb's own thread actions", async () => {
     const first = await openThreadActions();
     expect(first.targets.at(-1)).toMatchObject({ id: "th_1", archivedAt: null });

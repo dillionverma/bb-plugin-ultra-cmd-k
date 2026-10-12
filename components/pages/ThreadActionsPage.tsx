@@ -2,6 +2,7 @@
 import { useMemo } from "react";
 import { toast } from "sonner";
 import {
+  experimental_copyToClipboard,
   experimental_useThreadActions,
   useSdk,
   type PluginBrowserBbSdk,
@@ -179,7 +180,10 @@ function buildThreadActions(
       glyph: "copy",
       group,
       run: async () => {
-        await navigator.clipboard.writeText(id);
+        if (!(await experimental_copyToClipboard({ text: id }))) {
+          toast.error("Could not copy the thread id");
+          return;
+        }
         api.record("thread:copy-id");
         toast.success("Copied thread id");
         api.close();
