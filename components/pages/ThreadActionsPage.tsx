@@ -1,4 +1,3 @@
-// Actions for one thread, opened with → / Tab on any thread row.
 import { useMemo } from "react";
 import { toast } from "sonner";
 import {

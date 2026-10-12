@@ -8,10 +8,8 @@ import type { ThemeEntry } from "@/lib/contract";
 import type { Action } from "@/lib/palette-types";
 import { threadTitle } from "@/lib/thread-search";
 
-/** Window event Ultra Launcher (runtime id `quick-thread`) listens for to open its Cmd+N dialog. */
 const OPEN_LAUNCHER_EVENT = "quick-thread:open";
 
-/** Ultra Launcher's dialog when it is running, else bb's new-thread screen. */
 export function startNewThread(api: PaletteApi, projectId: string | undefined): void {
   api.close();
   if (api.bootstrap?.launcherInstalled) window.dispatchEvent(new Event(OPEN_LAUNCHER_EVENT));

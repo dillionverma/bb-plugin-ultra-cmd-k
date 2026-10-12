@@ -1,11 +1,8 @@
-// Draws lib/hugeicons.ts artwork with the markup @hugeicons/react's
-// HugeiconsIcon renders, so rows look the same without that package.
 import { createElement, type SVGProps } from "react";
 import type { IconSvgElement } from "@/lib/hugeicons";
 
 type GlyphProps = Omit<SVGProps<SVGSVGElement>, "strokeWidth"> & {
   icon: IconSvgElement;
-  /** Replaces the artwork's own 1.5 stroke on every element. */
   strokeWidth?: number;
 };
 

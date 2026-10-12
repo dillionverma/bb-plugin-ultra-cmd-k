@@ -69,7 +69,6 @@ function coreAction(key: string, run: () => Promise<void>): PluginThreadActionEn
 }
 
 beforeAll(() => {
-  // jsdom lacks these: cmdk measures its list and scrolls the highlighted row; the overlay reads the motion preference.
   globalThis.ResizeObserver = class {
     observe() {}
     unobserve() {}
@@ -85,7 +84,6 @@ afterEach(() => {
   cleanup();
 });
 
-/** Opens the palette and moves into the thread's actions page with Tab, as a user would. */
 async function openThreadActions() {
   const app = await loadPluginApp(() => import("@/app"));
   const overlay = app.appOverlays.find((registration) => registration.id === "palette");

@@ -14,9 +14,7 @@ type PaletteRowProps = {
   value: string;
   /** Text the filter matches against: title plus keywords. */
   keywords: readonly string[];
-  /** A glyph from lib/glyphs.ts (preferred) … */
   glyph?: IconSvgElement;
-  /** … or a bb icon name, or a custom node. */
   icon?: string;
   iconNode?: ReactNode;
   iconClassName?: string;

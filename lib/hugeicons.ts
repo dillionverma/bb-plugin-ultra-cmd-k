@@ -1,6 +1,5 @@
-// Hugeicons artwork (free stroke-rounded set, MIT, see LICENSE-HUGEICONS) for
-// the glyphs in lib/glyphs.ts, copied from @hugeicons/core-free-icons 4.3.5.
-// The package holds the whole set, about 99 MB that every git install would fetch.
+// Hugeicons artwork (free stroke-rounded set, MIT, see LICENSE-HUGEICONS),
+// copied from @hugeicons/core-free-icons 4.3.5.
 
 export type IconSvgElement = readonly (readonly [string, { readonly [key: string]: string | number }])[];
 
