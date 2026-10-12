@@ -1,7 +1,7 @@
 // One place for every glyph the palette draws. Hugeicons stroke set, the
 // same family Ultra Sidebar uses, so rows read as one system with the rest
 // of the suite. Names are semantic so a row never has to know which icon
-// pack it is pulling from.
+// it draws.
 import {
   Add01Icon,
   AiBrain01Icon,
@@ -57,8 +57,8 @@ import {
   Sun01Icon,
   Tick02Icon,
   UserIcon,
-} from "@hugeicons/core-free-icons";
-import type { IconSvgElement } from "@hugeicons/react";
+  type IconSvgElement,
+} from "./hugeicons";
 
 export const GLYPHS = {
   // App

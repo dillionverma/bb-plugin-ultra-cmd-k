@@ -4,7 +4,7 @@
 import { memo } from "react";
 import { experimental_ProviderIcon as ProviderIcon } from "@get-bb/plugin-sdk/app";
 import type { PluginSidebarProject, PluginSidebarThread } from "@get-bb/plugin-sdk/app";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { Glyph } from "@/components/Glyph";
 import { PaletteRow } from "@/components/PaletteRow";
 import { usePaletteApi } from "@/components/PaletteContext";
 import { ProjectIcon } from "@/components/ProjectIcon";
@@ -71,7 +71,7 @@ export const ThreadRow = memo(function ThreadRow({
       onSelect={onSelect}
       trailing={
         <span className="flex min-w-0 shrink items-center gap-2 text-[11px] leading-4 text-muted-foreground">
-          {thread.isPinned ? <HugeiconsIcon icon={GLYPHS.pin} className="size-3 shrink-0" aria-label="Pinned" /> : null}
+          {thread.isPinned ? <Glyph icon={GLYPHS.pin} className="size-3 shrink-0" aria-label="Pinned" /> : null}
           <ProviderIcon providerKind="agent" provider={provider} className="size-3 shrink-0 opacity-80" />
           {showProject && project ? (
             <span className="inline-flex min-w-0 max-w-32 items-center gap-1">
@@ -81,7 +81,7 @@ export const ThreadRow = memo(function ThreadRow({
           ) : null}
           {branch ? (
             <span className="hidden min-w-0 max-w-36 items-center gap-1 sm:inline-flex">
-              <HugeiconsIcon icon={GLYPHS.branch} className="size-3 shrink-0 opacity-70" aria-hidden />
+              <Glyph icon={GLYPHS.branch} className="size-3 shrink-0 opacity-70" aria-hidden />
               <span className="truncate">{branch}</span>
             </span>
           ) : null}

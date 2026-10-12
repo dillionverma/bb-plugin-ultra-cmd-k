@@ -1,9 +1,8 @@
 // Settings → Ultra Cmd+K: who owns the hotkey, claim/release, and recents.
 import { useCallback, useEffect, useState } from "react";
-import { useRpc } from "@get-bb/plugin-sdk/app";
+import { experimental_Icon as Icon, useRpc } from "@get-bb/plugin-sdk/app";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Icon } from "@/components/ui/icon";
 import { Kbd } from "@/components/Kbd";
 import type { HotkeyStatus, rpcContract } from "@/lib/contract";
 import { isMacPlatform } from "@/lib/hotkey";

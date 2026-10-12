@@ -1,8 +1,8 @@
 import * as React from "react";
 import { Command as CommandPrimitive } from "cmdk";
 
+import { experimental_Icon as Icon } from "@get-bb/plugin-sdk/app";
 import { cn } from "../../lib/utils";
-import { Icon } from "./icon";
 
 const Command = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive>,

@@ -2,7 +2,7 @@
 // The sidebar plugin serves vetted image bytes from its own HTTP route and
 // answers 404 when there is nothing; we simply try it and fall back.
 import { useState } from "react";
-import { HugeiconsIcon } from "@hugeicons/react";
+import { Glyph } from "@/components/Glyph";
 import { GLYPHS } from "@/lib/glyphs";
 import { cn } from "@/lib/utils";
 
@@ -36,7 +36,7 @@ export function ProjectIcon({
     );
   }
   return (
-    <HugeiconsIcon
+    <Glyph
       icon={isPersonal ? GLYPHS.personal : GLYPHS.folder}
       className={cn("shrink-0", className)}
       strokeWidth={1.75}

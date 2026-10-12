@@ -2,10 +2,11 @@
 // a fixed slot, a title, muted meta on the right, and a keycap when the row
 // has a shortcut. Anything absent renders nothing — no placeholders.
 import type { ReactNode } from "react";
-import { HugeiconsIcon, type IconSvgElement } from "@hugeicons/react";
+import { experimental_Icon as Icon } from "@get-bb/plugin-sdk/app";
 import { CommandItem } from "@/components/ui/command";
-import { Icon } from "@/components/ui/icon";
+import { Glyph } from "@/components/Glyph";
 import { Kbd } from "@/components/Kbd";
+import type { IconSvgElement } from "@/lib/hugeicons";
 import { cn } from "@/lib/utils";
 
 type PaletteRowProps = {
@@ -13,7 +14,7 @@ type PaletteRowProps = {
   value: string;
   /** Text the filter matches against: title plus keywords. */
   keywords: readonly string[];
-  /** Hugeicons glyph (preferred) … */
+  /** A glyph from lib/glyphs.ts (preferred) … */
   glyph?: IconSvgElement;
   /** … or a bb icon name, or a custom node. */
   icon?: string;
@@ -32,7 +33,7 @@ type PaletteRowProps = {
 };
 
 function RowGlyph({ glyph, icon, className }: { glyph?: IconSvgElement; icon?: string; className?: string }) {
-  if (glyph) return <HugeiconsIcon icon={glyph} strokeWidth={1.75} className={cn("size-4", className)} aria-hidden />;
+  if (glyph) return <Glyph icon={glyph} strokeWidth={1.75} className={cn("size-4", className)} aria-hidden />;
   if (icon) return <Icon name={icon} className={cn("size-4", className)} aria-hidden />;
   return null;
 }
