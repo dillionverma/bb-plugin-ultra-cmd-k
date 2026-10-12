@@ -166,19 +166,32 @@ function buildThreadActions(
       keywords: ["summarize", "context window"],
       run: serverAction(api, id, "compact", "Compacting…"),
     },
-    {
-      id: `${prefix}archive`,
-      title: thread.isArchived ? "Unarchive" : "Archive",
-      glyph: thread.isArchived ? "unarchive" : "archive",
-      group,
-      run: thread.isArchived
-        ? serverAction(api, id, "unarchive", "Unarchived")
-        : () => {
-            void archive?.run();
-            api.record("thread:archive");
-            api.close();
-          },
-    },
+    ...(thread.isArchived
+      ? [
+          {
+            id: `${prefix}archive`,
+            title: "Unarchive",
+            glyph: "unarchive",
+            group,
+            run: serverAction(api, id, "unarchive", "Unarchived"),
+          } satisfies Action,
+        ]
+      : []),
+    ...(archive && !thread.isArchived
+      ? [
+          {
+            id: `${prefix}archive`,
+            title: "Archive",
+            glyph: "archive",
+            group,
+            run: () => {
+              void archive.run();
+              api.record("thread:archive");
+              api.close();
+            },
+          } satisfies Action,
+        ]
+      : []),
     {
       id: `${prefix}copy-id`,
       title: "Copy thread id",
@@ -195,17 +208,21 @@ function buildThreadActions(
         api.close();
       },
     },
-    {
-      id: `${prefix}delete`,
-      title: "Delete",
-      subtitle: "asks first",
-      glyph: "trash",
-      group,
-      run: () => {
-        void remove?.run();
-        api.close();
-      },
-    },
+    ...(remove
+      ? [
+          {
+            id: `${prefix}delete`,
+            title: "Delete",
+            subtitle: "asks first",
+            glyph: "trash",
+            group,
+            run: () => {
+              void remove.run();
+              api.close();
+            },
+          } satisfies Action,
+        ]
+      : []),
   ];
   return actions;
 }

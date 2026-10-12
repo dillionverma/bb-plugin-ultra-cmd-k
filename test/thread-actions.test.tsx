@@ -92,7 +92,11 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 
-async function openPalette(overrides: Partial<Bootstrap> = {}, pin: () => Promise<never> = async () => undefined as never) {
+async function openPalette(
+  overrides: Partial<Bootstrap> = {},
+  pin: () => Promise<never> = async () => undefined as never,
+  offered: readonly string[] = ["bb--core/pin", "bb--core/archive", "bb--core/delete"],
+) {
   const app = await loadPluginApp(() => import("@/app"));
   const overlay = app.appOverlays.find((registration) => registration.id === "palette");
   if (!overlay) throw new Error("palette overlay is not registered");
@@ -103,7 +107,9 @@ async function openPalette(overrides: Partial<Bootstrap> = {}, pin: () => Promis
     sidebarThreads: { status: "ready", threads: [thread], projects: [project] },
     threadActions: (target) => {
       targets.push(target);
-      return [coreAction("bb--core/pin", async () => {}), coreAction("bb--core/archive", archive), coreAction("bb--core/delete", remove)];
+      return [coreAction("bb--core/pin", async () => {}), coreAction("bb--core/archive", archive), coreAction("bb--core/delete", remove)].filter(
+        (entry) => offered.includes(entry.key),
+      );
     },
     sdk: { threads: { pin, markRead: async () => undefined as never } },
     rpc: { get_bootstrap: () => ({ ...bootstrap, ...overrides }) },
@@ -114,8 +120,8 @@ async function openPalette(overrides: Partial<Bootstrap> = {}, pin: () => Promis
   return { slot, archive, remove, targets };
 }
 
-async function openThreadActions(pin?: () => Promise<never>) {
-  const opened = await openPalette({}, pin);
+async function openThreadActions(pin?: () => Promise<never>, offered?: readonly string[]) {
+  const opened = await openPalette({}, pin, offered);
   fireEvent.keyDown(screen.getByRole("combobox"), { key: "Tab" });
   await screen.findByText("Open in split");
   return opened;
@@ -168,6 +174,12 @@ describe("thread actions page", () => {
     fireEvent.click(screen.getByText("Delete"));
     expect(second.remove).toHaveBeenCalledOnce();
     expect(second.archive).not.toHaveBeenCalled();
+  });
+
+  it("leaves out Archive and Delete when bb does not offer them for the thread", async () => {
+    await openThreadActions(undefined, ["bb--core/pin"]);
+    expect(screen.queryByText("Archive")).toBeNull();
+    expect(screen.queryByText("Delete")).toBeNull();
   });
 });
 
