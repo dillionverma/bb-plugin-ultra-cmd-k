@@ -307,9 +307,6 @@ export default async function plugin(bb: BbPluginApi) {
         case "compact":
           await bb.sdk.threads.compact({ threadId });
           return { ok: true };
-        case "unarchive":
-          await bb.sdk.threads.unarchive({ threadId });
-          return { ok: true };
       }
     },
     send_message: async ({ threadId, text }) => {

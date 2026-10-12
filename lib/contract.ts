@@ -116,7 +116,7 @@ export function isBootstrapSignal(payload: unknown): payload is BootstrapSignal 
   return Array.isArray(reasons) && reasons.every((reason) => typeof reason === "string") && typeof at === "number";
 }
 
-const threadActionSchema = z.enum(["stop", "fork", "compact", "unarchive"]);
+const threadActionSchema = z.enum(["stop", "fork", "compact"]);
 export type ThreadAction = z.infer<typeof threadActionSchema>;
 
 export const runResultSchema = z.object({

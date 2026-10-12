@@ -166,18 +166,7 @@ function buildThreadActions(
       keywords: ["summarize", "context window"],
       run: serverAction(api, id, "compact", "Compacting…"),
     },
-    ...(thread.isArchived
-      ? [
-          {
-            id: `${prefix}archive`,
-            title: "Unarchive",
-            glyph: "unarchive",
-            group,
-            run: serverAction(api, id, "unarchive", "Unarchived"),
-          } satisfies Action,
-        ]
-      : []),
-    ...(archive && !thread.isArchived
+    ...(archive
       ? [
           {
             id: `${prefix}archive`,
