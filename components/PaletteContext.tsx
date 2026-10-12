@@ -5,7 +5,6 @@ import type {
   BbNavigate,
   PluginProvidersState,
   PluginRpcClient,
-  PluginSidebarThreadActions,
   PluginSidebarThreadsState,
 } from "@get-bb/plugin-sdk/app";
 import type { Bootstrap, rpcContract } from "@/lib/contract";
@@ -25,7 +24,6 @@ export type VirtualNav = {
 export type PaletteApi = {
   rpc: PluginRpcClient<typeof rpcContract>;
   nav: BbNavigate;
-  threadActions: PluginSidebarThreadActions;
   threads: PluginSidebarThreadsState;
   /** Provider roster by id, read once in the shell rather than per row. */
   providers: ReadonlyMap<string, PluginProvidersState["providers"][number]>;

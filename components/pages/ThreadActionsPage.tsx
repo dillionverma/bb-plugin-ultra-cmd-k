@@ -1,8 +1,14 @@
-// Actions for one thread. Reused by the "This thread" group on the root
-// page (same builder) and by → / Tab on any thread row.
+// Actions for one thread, opened with → / Tab on any thread row.
 import { useMemo } from "react";
 import { toast } from "sonner";
-import type { PluginSidebarThread } from "@get-bb/plugin-sdk/app";
+import {
+  experimental_useThreadActions,
+  useSdk,
+  type PluginBrowserBbSdk,
+  type PluginSidebarThread,
+  type PluginThreadActionEntry,
+  type PluginThreadActionTarget,
+} from "@get-bb/plugin-sdk/app";
 import { CommandGroup } from "@/components/ui/command";
 import { PaletteRow } from "@/components/PaletteRow";
 import { usePaletteApi, useRegisterActions, type PaletteApi } from "@/components/PaletteContext";
@@ -11,6 +17,16 @@ import { GLYPHS } from "@/lib/glyphs";
 import type { Action } from "@/lib/palette-types";
 import type { ThreadAction } from "@/lib/contract";
 import { threadTitle } from "@/lib/thread-search";
+
+/** bb's own archive and delete flows: child-thread confirmation, pane cleanup, Undo. */
+const ARCHIVE = "bb--core/archive";
+const DELETE = "bb--core/delete";
+const LIFECYCLE = { keys: [ARCHIVE, DELETE] };
+
+function actionTarget(thread: PluginSidebarThread): PluginThreadActionTarget {
+  const environment = thread.environment;
+  return { ...thread, environment: environment?.id ? { id: environment.id, path: environment.path } : null };
+}
 
 function serverAction(api: PaletteApi, threadId: string, action: ThreadAction, done: string) {
   return async () => {
@@ -26,9 +42,16 @@ function serverAction(api: PaletteApi, threadId: string, action: ThreadAction, d
   };
 }
 
-/** Rows for a thread; `group` names the cmdk group they render under. */
-function buildThreadActions(api: PaletteApi, thread: PluginSidebarThread, group: string): Action[] {
+function buildThreadActions(
+  api: PaletteApi,
+  sdk: PluginBrowserBbSdk,
+  thread: PluginSidebarThread,
+  lifecycle: readonly PluginThreadActionEntry[],
+): Action[] {
   const id = thread.id;
+  const group = threadTitle(thread);
+  const archive = lifecycle.find((entry) => entry.key === ARCHIVE)?.action;
+  const remove = lifecycle.find((entry) => entry.key === DELETE)?.action;
   const busy = thread.indicator === "runtime" || thread.activity.backgroundAgents + thread.activity.workflows > 0;
   const prefix = `thread:${id}:`;
   const actions: Action[] = [
@@ -39,12 +62,12 @@ function buildThreadActions(api: PaletteApi, thread: PluginSidebarThread, group:
       group,
       keywords: ["go to", "jump"],
       run: () => {
-        api.threadActions.open(id);
+        api.nav.toThread(id);
         api.record("thread:open");
         api.close();
       },
       secondary: () => {
-        api.threadActions.open(id, { split: true });
+        api.nav.toThread(id, { split: true });
         api.record("thread:open-split");
         api.close();
       },
@@ -56,7 +79,7 @@ function buildThreadActions(api: PaletteApi, thread: PluginSidebarThread, group:
       group,
       keywords: ["side by side", "pane"],
       run: () => {
-        api.threadActions.open(id, { split: true });
+        api.nav.toThread(id, { split: true });
         api.record("thread:open-split");
         api.close();
       },
@@ -88,7 +111,7 @@ function buildThreadActions(api: PaletteApi, thread: PluginSidebarThread, group:
       glyph: thread.isPinned ? "unpin" : "pin",
       group,
       run: async () => {
-        await api.threadActions.setPinned(id, !thread.isPinned);
+        await (thread.isPinned ? sdk.threads.unpin({ threadId: id }) : sdk.threads.pin({ threadId: id }));
         api.record("thread:pin");
         toast.success(thread.isPinned ? "Unpinned" : "Pinned");
         api.close();
@@ -100,7 +123,7 @@ function buildThreadActions(api: PaletteApi, thread: PluginSidebarThread, group:
       glyph: thread.isUnread ? "markRead" : "markUnread",
       group,
       run: async () => {
-        await api.threadActions.setRead(id, thread.isUnread);
+        await (thread.isUnread ? sdk.threads.markRead({ threadId: id }) : sdk.threads.markUnread({ threadId: id }));
         api.record("thread:read");
         api.close();
       },
@@ -113,7 +136,7 @@ function buildThreadActions(api: PaletteApi, thread: PluginSidebarThread, group:
       keywords: ["title"],
       subtitle: api.bbContext.threadId === id ? undefined : "opens the thread first",
       run: async () => {
-        if (api.bbContext.threadId !== id) api.threadActions.open(id);
+        if (api.bbContext.threadId !== id) api.nav.toThread(id);
         const handled = await api.relay("thread.rename");
         if (!handled) toast.error("Rename is not bound to a shortcut; rename from the thread header.");
         api.record("thread:rename");
@@ -143,7 +166,7 @@ function buildThreadActions(api: PaletteApi, thread: PluginSidebarThread, group:
       run: thread.isArchived
         ? serverAction(api, id, "unarchive", "Unarchived")
         : () => {
-            api.threadActions.archive(id);
+            void archive?.run();
             api.record("thread:archive");
             toast.success("Archived");
             api.close();
@@ -169,7 +192,7 @@ function buildThreadActions(api: PaletteApi, thread: PluginSidebarThread, group:
       glyph: "trash",
       group,
       run: () => {
-        api.threadActions.requestDelete(id);
+        void remove?.run();
         api.close();
       },
     },
@@ -180,11 +203,6 @@ function buildThreadActions(api: PaletteApi, thread: PluginSidebarThread, group:
 export function ThreadActionsPage({ threadId }: { threadId: string }) {
   const api = usePaletteApi();
   const thread = api.threads.threads.find((entry) => entry.id === threadId);
-  const actions = useMemo(
-    () => (thread ? buildThreadActions(api, thread, threadTitle(thread)) : []),
-    [api, thread],
-  );
-  useRegisterActions(actions);
   if (!thread) {
     return (
       <CommandGroup heading="Thread">
@@ -192,6 +210,16 @@ export function ThreadActionsPage({ threadId }: { threadId: string }) {
       </CommandGroup>
     );
   }
+  return <ThreadActions thread={thread} />;
+}
+
+function ThreadActions({ thread }: { thread: PluginSidebarThread }) {
+  const api = usePaletteApi();
+  const sdk = useSdk();
+  const target = useMemo(() => actionTarget(thread), [thread]);
+  const lifecycle = experimental_useThreadActions(target, LIFECYCLE);
+  const actions = useMemo(() => buildThreadActions(api, sdk, thread, lifecycle), [api, sdk, thread, lifecycle]);
+  useRegisterActions(actions);
   return (
     <CommandGroup
       heading={

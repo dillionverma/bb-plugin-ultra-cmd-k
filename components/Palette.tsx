@@ -6,7 +6,6 @@ import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent a
 import { toast } from "sonner";
 import {
   experimental_useProviders,
-  experimental_useSidebarThreadActions,
   experimental_useSidebarThreads,
   useBbContext,
   useBbNavigate,
@@ -158,7 +157,6 @@ function ModeView({ mode, text, setQuery }: { mode: PrefixMode; text: string; se
 export function Palette({ initialQuery, openNonce }: { initialQuery: string; openNonce: number }) {
   const rpc = useRpc<typeof rpcContract>();
   const nav = useBbNavigate();
-  const threadActions = experimental_useSidebarThreadActions();
   const threads = experimental_useSidebarThreads();
   const providerState = experimental_useProviders();
   const bbContext = useBbContext();
@@ -243,7 +241,6 @@ export function Palette({ initialQuery, openNonce }: { initialQuery: string; ope
     () => ({
       rpc,
       nav,
-      threadActions,
       threads,
       providers,
       bbContext,
@@ -272,7 +269,7 @@ export function Palette({ initialQuery, openNonce }: { initialQuery: string; ope
       select: setSelected,
       virtualNav,
     }),
-    [rpc, nav, threadActions, threads, providers, bbContext, bootstrap, refreshBootstrap, isMac, push, pop, replace, relay, focusInput],
+    [rpc, nav, threads, providers, bbContext, bootstrap, refreshBootstrap, isMac, push, pop, replace, relay, focusInput],
   );
 
   const selectedAction = (): Action | null => {

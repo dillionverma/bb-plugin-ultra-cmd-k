@@ -12,11 +12,10 @@ import { ThreadRow } from "@/components/ThreadRow";
 import { VirtualThreadList } from "@/components/VirtualThreadList";
 import { FaviconDot } from "@/components/pages/FaviconPage";
 import { usePaletteApi, useRegisterActions, type PaletteApi } from "@/components/PaletteContext";
-import { isListedThread, sortThreads, themeAction, threadOpenAction } from "@/lib/actions";
+import { isListedThread, sortThreads, startNewThread, themeAction, threadOpenAction } from "@/lib/actions";
 import { APPEARANCE_MODES, readAppearanceMode, writeAppearanceMode, type AppearanceMode } from "@/lib/appearance";
 import { GLYPHS } from "@/lib/glyphs";
 import { findBinding, formatShortcut, HOST_COMMANDS } from "@/lib/host-commands";
-import { OPEN_LAUNCHER_EVENT } from "@/lib/launcher";
 import { GROUP_ORDER, type Action, type PrefixMode } from "@/lib/palette-types";
 import { rank, recentsStore } from "@/lib/recents";
 import { rankThreads } from "@/lib/thread-search";
@@ -42,9 +41,7 @@ function newThread(api: PaletteApi): Action {
     keywords: ["create", "start", "compose", "cmd+n", "launcher"],
     run: () => {
       api.record("new-thread");
-      api.close();
-      if (launcher) window.dispatchEvent(new Event(OPEN_LAUNCHER_EVENT));
-      else api.threadActions.openNewThread({ projectId: api.bbContext.projectId ?? undefined, focusPrompt: true });
+      startNewThread(api, api.bbContext.projectId ?? undefined);
     },
   };
 }

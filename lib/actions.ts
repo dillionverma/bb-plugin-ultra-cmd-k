@@ -8,6 +8,16 @@ import type { ThemeEntry } from "@/lib/contract";
 import type { Action } from "@/lib/palette-types";
 import { threadTitle } from "@/lib/thread-search";
 
+/** Window event Ultra Launcher (runtime id `quick-thread`) listens for to open its Cmd+N dialog. */
+const OPEN_LAUNCHER_EVENT = "quick-thread:open";
+
+/** Ultra Launcher's dialog when it is running, else bb's new-thread screen. */
+export function startNewThread(api: PaletteApi, projectId: string | undefined): void {
+  api.close();
+  if (api.bootstrap?.launcherInstalled) window.dispatchEvent(new Event(OPEN_LAUNCHER_EVENT));
+  else api.nav.toCompose({ projectId, focusPrompt: true });
+}
+
 export function threadOpenAction(api: PaletteApi, thread: PluginSidebarThread): Action {
   return {
     id: `thread:${thread.id}:open`,
@@ -16,12 +26,12 @@ export function threadOpenAction(api: PaletteApi, thread: PluginSidebarThread): 
     group: "Threads",
     run: () => {
       api.record("thread:open");
-      api.threadActions.open(thread.id);
+      api.nav.toThread(thread.id);
       api.close();
     },
     secondary: () => {
       api.record("thread:open-split");
-      api.threadActions.open(thread.id, { split: true });
+      api.nav.toThread(thread.id, { split: true });
       api.close();
     },
     page: { kind: "thread", threadId: thread.id },

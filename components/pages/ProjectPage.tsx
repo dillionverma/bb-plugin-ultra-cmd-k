@@ -4,9 +4,8 @@ import { PaletteRow } from "@/components/PaletteRow";
 import { ProjectIcon } from "@/components/ProjectIcon";
 import { usePaletteApi, useRegisterActions } from "@/components/PaletteContext";
 import { ThreadRow } from "@/components/ThreadRow";
-import { isListedThread, sortThreads, threadOpenAction } from "@/lib/actions";
+import { isListedThread, sortThreads, startNewThread, threadOpenAction } from "@/lib/actions";
 import { GLYPHS } from "@/lib/glyphs";
-import { OPEN_LAUNCHER_EVENT } from "@/lib/launcher";
 
 const PROJECT_THREAD_CAP = 50;
 
@@ -49,9 +48,7 @@ export function ProjectPage({ projectId }: { projectId: string }) {
           meta={api.bootstrap?.launcherInstalled ? "Ultra Launcher" : undefined}
           onSelect={() => {
             api.record("project:new-thread");
-            api.close();
-            if (api.bootstrap?.launcherInstalled) window.dispatchEvent(new Event(OPEN_LAUNCHER_EVENT));
-            else api.threadActions.openNewThread({ projectId, focusPrompt: true });
+            startNewThread(api, projectId);
           }}
         />
       </CommandGroup>
