@@ -43,7 +43,7 @@
     "README.md",
     "PLUGIN_OVERVIEW.md",
     "LICENSE",
-    "LICENSE-HUGEICONS",
+    "licenses/HUGEICONS.txt",
     "!**/*.test.ts",
     "!**/*.test.tsx"
   ],

@@ -1,4 +1,4 @@
-// Hugeicons artwork (free stroke-rounded set, MIT, see LICENSE-HUGEICONS),
+// Hugeicons artwork (free stroke-rounded set, MIT, see licenses/HUGEICONS.txt),
 // copied from @hugeicons/core-free-icons 4.3.5.
 
 export type IconSvgElement = readonly (readonly [string, { readonly [key: string]: string | number }])[];
