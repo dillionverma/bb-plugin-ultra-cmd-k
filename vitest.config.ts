@@ -3,10 +3,10 @@ import { defineConfig } from "vitest/config";
 
 export default defineConfig({
   resolve: {
-    alias: { "@": fileURLToPath(new URL("./", import.meta.url)) },
+    alias: { "@": fileURLToPath(new URL("./src/", import.meta.url)) },
   },
   test: {
     environment: "jsdom",
-    include: ["test/**/*.test.ts", "test/**/*.test.tsx"],
+    include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
   },
 });

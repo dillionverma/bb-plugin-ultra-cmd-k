@@ -27,27 +27,25 @@
     "branding": {
       "icon": "./assets/icon.svg"
     },
-    "server": "./server.ts",
-    "app": "./app.tsx",
-    "host": "./host.ts",
+    "server": "./src/server.ts",
+    "app": "./src/app.tsx",
+    "host": "./src/host.ts",
     "skills": [
       "skills"
     ]
   },
   "files": [
     "assets/icon.svg",
-    "app.tsx",
-    "server.ts",
-    "host.ts",
-    "components",
-    "lib",
+    "src",
     "skills",
     "tsconfig.json",
     "dist",
     "README.md",
     "PLUGIN_OVERVIEW.md",
     "LICENSE",
-    "LICENSE-HUGEICONS"
+    "LICENSE-HUGEICONS",
+    "!**/*.test.ts",
+    "!**/*.test.tsx"
   ],
   "dependencies": {
     "@tanstack/react-virtual": "^3.14.17",
