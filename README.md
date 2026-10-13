@@ -64,4 +64,4 @@ Run `npm test`, `npm run typecheck` and `bb plugin build` before submitting chan
 
 ## License
 
-[MIT](LICENSE). The bundled Hugeicons artwork is MIT as well, see [licenses/HUGEICONS.txt](licenses/HUGEICONS.txt).
+[MIT](LICENSE). The bundled Hugeicons artwork is MIT as well; its copyright notice is included in the license.
