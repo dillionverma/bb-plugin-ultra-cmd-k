@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <img src="assets/readme/palette.webp" alt="Ultra Cmd+K open over BB, listing demo threads with their project, branch and age, then demo projects. All projects and threads shown are demo data." width="1080" />
+  <img src="assets/readme/demo.gif" alt="Animated demo of Ultra Cmd+K searching a demo thread, opening its actions and running a BB command. All projects and threads shown are demo data." width="960" />
 </p>
 
 Ultra Cmd+K is a command palette for BB. Press ⌘K (Ctrl+K on Windows and Linux) on any screen to find a thread or project, act on a thread, switch themes, run a BB command, or run the `bb` CLI, without leaving the keyboard.
